@@ -4,6 +4,8 @@
 --   kind = 'swap'     : position, date, serial, pressure, cost (refill cost), empty, notes
 --   kind = 'service'  : date, status (in | ready | returned), customer, phone, size, serial, work, certDate, nextDue,
 --                       charge, miles, tolls, otherCost, otherDesc, notes
+--   kind = 'hire'     : system (S1 | S2 | S3 single place, T1 two place), status (booked | out | returned),
+--                       period (day | weekend | week), qty, date (hire start), end (hire finish), customer, phone, charge, notes
 --   kind = 'entry'    : type (rental | cost | income | mileage), date, desc, amount (miles for mileage)
 --   kind = 'settings' : unit, fullPressure, lowPressure, defaultCharge, defaultRefillCost, sizes[]
 CREATE TABLE IF NOT EXISTS records (
@@ -43,3 +45,10 @@ CREATE VIEW IF NOT EXISTS money_entries AS
   SELECT json_extract(data,'$.type') AS type, json_extract(data,'$.date') AS date,
          json_extract(data,'$.desc') AS description, json_extract(data,'$.amount') AS amount
   FROM records WHERE kind = 'entry' AND deleted = 0;
+CREATE VIEW IF NOT EXISTS hires AS
+  SELECT json_extract(data,'$.system') AS system, json_extract(data,'$.status') AS status,
+         json_extract(data,'$.date') AS hire_start, json_extract(data,'$.end') AS hire_finish,
+         json_extract(data,'$.period') AS period, json_extract(data,'$.qty') AS how_many,
+         json_extract(data,'$.customer') AS customer, json_extract(data,'$.phone') AS phone,
+         json_extract(data,'$.charge') AS charge, json_extract(data,'$.notes') AS notes
+  FROM records WHERE kind = 'hire' AND deleted = 0;

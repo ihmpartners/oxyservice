@@ -59,6 +59,8 @@ input[type=checkbox]{display:inline;width:auto;margin:0 8px 0 0}
 fieldset{border:1px solid var(--line);border-radius:10px;padding:12px 12px 2px;margin:4px 0 12px}
 legend{font-size:13px;font-weight:600;padding:0 6px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid2>label,.grid3>label{min-width:0}
+input,select{min-width:0}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 10px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 button.b{font:inherit;font-size:15px;border-radius:9px;padding:10px 16px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
@@ -105,6 +107,13 @@ td.desc{white-space:normal;min-width:130px}
 .chip.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
 .chip.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
 h2 .chip{font-size:12px}
+.sys{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.sys .tile{display:flex;flex-direction:column;gap:4px}
+.sys .nm{font-weight:700;font-size:15px}
+.sys .s{font-size:12px;color:var(--muted);line-height:1.35}
+.sys button{margin-top:auto;align-self:flex-start}
+@media (min-width:640px){.sys{grid-template-columns:repeat(4,1fr)}}
+@media (max-width:420px){nav button{font-size:11px;padding:10px 0 12px}}
 .empty-note{padding:18px 0;text-align:center;color:var(--muted)}
 @media (max-width:420px){.mani{gap:6px}.cyl{padding:10px 6px}.tile .v{font-size:19px}}
 @media (min-width:640px){.tiles{grid-template-columns:repeat(3,1fr)}}
@@ -121,6 +130,7 @@ h2 .chip{font-size:12px}
   <button data-tab="fill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Fill</button>
   <button data-tab="manifold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="5" height="14" rx="2"/><rect x="9.5" y="7" width="5" height="14" rx="2"/><rect x="16" y="7" width="5" height="14" rx="2"/><path d="M5.5 7V4h13v3"/></svg>Manifold</button>
   <button data-tab="service"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></svg>Service</button>
+  <button data-tab="hire"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 15h3"/></svg>Hire</button>
   <button data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Log</button>
   <button data-tab="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Accounts</button>
   <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
@@ -136,6 +146,8 @@ const num = v => (v === '' || v == null || isNaN(+v)) ? null : +v;
 const money = n => (n < 0 ? '−' : '') + '£' + Math.abs(+n || 0).toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2});
 const pad = n => String(n).padStart(2, '0');
 const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const addDays = (ds, n) => { const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const dayDiff = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
 const fmtDate = ds => ds ? new Date(ds + 'T12:00:00').toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : '';
 // UK tax year: 1 April – 31 March. Year key = calendar year in which it starts.
 const taxYearOf = ds => { const [y, m] = ds.split('-').map(Number); return m >= 4 ? y : y - 1; };
@@ -167,12 +179,19 @@ const IDB = {
 
 /* ================= state ================= */
 // Each record: {id, kind, data, updated_at, deleted, dirty}
-// kinds: fill | swap | service | entry (rental / other cost / other income / mileage) | settings
-const S = { recs: new Map(), meta: {}, tab: 'fill', year: null, edit: null, swapPos: null, q: '', sq: '' };
+// kinds: fill | swap | service | hire | entry (rental / other cost / other income / mileage) | settings
+const S = { recs: new Map(), meta: {}, tab: 'fill', year: null, edit: null, swapPos: null, hireSys: null, q: '', sq: '', hq: '' };
 const DEFAULTS = { unit: 'psi', fullPressure: 2200, lowPressure: 500, defaultCharge: 25, defaultRefillCost: 46.86,
   sizes: ['Ultra-lite', 'CD', 'D', 'E', 'F', '2 L', '3 L', '5 L', '7 L', '10 L', '12 L'],
   // HMRC approved mileage rates 2026/27: 55p for the first 10,000 business miles in the tax year, 25p after
-  mileageRate: 0.55, mileageRateHigh: 0.25, mileageThreshold: 10000, defaultServiceCharge: null, testIntervalYears: 5 };
+  mileageRate: 0.55, mileageRateHigh: 0.25, mileageThreshold: 10000, defaultServiceCharge: null, testIntervalYears: 5,
+  hirePrices: { 1: { day: 20, weekend: 50, week: 110 }, 2: { day: 35, weekend: 75, week: 185 } } };
+const HIRE_SYSTEMS = [ { id: 'S1', name: 'Single 1', places: 1 }, { id: 'S2', name: 'Single 2', places: 1 },
+  { id: 'S3', name: 'Single 3', places: 1 }, { id: 'T1', name: 'Two-place', places: 2 } ];
+const HIRE_PERIODS = { day: 'Day', weekend: 'Weekend', week: 'Week' };
+const HIRE_DAYS = { day: 1, weekend: 3, week: 7 }; // default length used to suggest the return date
+const HIRE_STATUS = { booked: 'Booked', out: 'On hire', returned: 'Returned' };
+const sysOf = id => HIRE_SYSTEMS.find(x => x.id === id) || HIRE_SYSTEMS[0];
 const WORK_TYPES = ['Test & certification', 'Visual inspection', 'Valve service', 'Valve replacement', 'Test & valve service'];
 const SERVICE_STATUS = { in: 'In for service', ready: 'Ready to collect', returned: 'Returned' };
 const settings = () => Object.assign({}, DEFAULTS, S.recs.get('settings')?.data || {});
@@ -213,12 +232,12 @@ function manifold(){
 const nextFillNo = () => live('fill').reduce((m, f) => Math.max(m, num(f.no) || 0), 0) + 1;
 function customers(){
   const m = new Map();
-  [...live('fill'), ...live('service')].sort(ord).forEach(f => { if (f.customer) m.set(f.customer.trim(), f.phone || m.get(f.customer.trim()) || ''); });
+  [...live('fill'), ...live('service'), ...live('hire')].sort(ord).forEach(f => { if (f.customer) m.set(f.customer.trim(), f.phone || m.get(f.customer.trim()) || ''); });
   return m;
 }
 function years(){
   const ys = new Set([taxYearOf(localToday())]);
-  for (const k of ['fill','swap','entry','service']) live(k).forEach(r => r.date && ys.add(taxYearOf(r.date)));
+  for (const k of ['fill','swap','entry','service','hire']) live(k).forEach(r => r.date && ys.add(taxYearOf(r.date)));
   return [...ys].sort((a, b) => b - a);
 }
 const inYear = (r, y) => r.date && taxYearOf(r.date) === y;
@@ -245,6 +264,8 @@ function ledger(y){
     if (num(s.otherCost)) rows.push({ ...base, created: (s.created || 0) + .2, cat: 'other', desc: `${s.otherDesc || 'Service cost'} – ${who}`, inc: 0, cost: num(s.otherCost) });
     if (num(s.miles)) rows.push({ ...base, created: (s.created || 0) + .3, cat: 'mileage', miles: num(s.miles), desc: `Mileage – ${who}`, inc: 0, cost: 0 });
   });
+  live('hire').filter(h => inYear(h, y)).forEach(h => rows.push({ date: h.date, created: h.created, id: h.id, kind: 'hire', cat: 'hire',
+    desc: `Hire – ${sysOf(h.system).name}, ${hireLen(h)}${h.customer ? ' – ' + h.customer : ''}`, inc: num(h.charge) || 0, cost: 0 }));
   rows.sort(ord);
   // Mileage allowance: standard rate up to the threshold in the tax year, lower rate after it.
   const st = settings(); let miles = 0;
@@ -261,12 +282,13 @@ function ledger(y){
 function totals(y){
   const L = ledger(y);
   const t = { returns: 0, fillReturns: 0, serviceReturns: 0, otherReturns: 0, refills: 0, rentals: 0, other: 0, tolls: 0,
-              miles: 0, mileage: 0, fills: 0, services: 0, refillCount: 0 };
+              miles: 0, mileage: 0, fills: 0, services: 0, refillCount: 0, hireReturns: 0, hires: 0 };
   L.forEach(r => {
     t.returns += r.inc;
     if (r.kind === 'fill') { t.fillReturns += r.inc; t.fills++; }
     else if (r.kind === 'swap') { t.refills += r.cost; t.refillCount++; }
     else if (r.cat === 'service') { t.serviceReturns += r.inc; t.services++; }
+    else if (r.cat === 'hire') { t.hireReturns += r.inc; t.hires++; }
     else if (r.cat === 'otherInc') t.otherReturns += r.inc;
     else if (r.cat === 'rental') t.rentals += r.cost;
     else if (r.cat === 'tolls') t.tolls += r.cost;
@@ -294,9 +316,10 @@ function render(){
   if (S.year == null || !ys.includes(S.year)) S.year = taxYearOf(localToday());
   $('#yearSel').innerHTML = ys.map(y => `<option value="${y}" ${y === S.year ? 'selected' : ''}>${tyLabel(y)}</option>`).join('');
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
-  $('#view').innerHTML = ({ fill: vFill, manifold: vManifold, service: vService, log: vLog, accounts: vAccounts, settings: vSettings })[S.tab]();
+  $('#view').innerHTML = ({ fill: vFill, manifold: vManifold, service: vService, hire: vHire, log: vLog, accounts: vAccounts, settings: vSettings })[S.tab]();
   if (S.tab === 'fill') wireFill();
   if (S.tab === 'service') wireService();
+  if (S.tab === 'hire') wireHire();
 }
 
 function dueChip(c){
@@ -386,6 +409,113 @@ function wireService(){
   const hint = () => { const mi = num(f.miles.value);
     $('#mileHint').textContent = mi ? `${mi} miles ≈ ${money(mi * st.mileageRate)} mileage allowance at ${Math.round(st.mileageRate * 100)}p/mile (counted against your returns in Accounts).` : `Mileage is claimed at ${Math.round(st.mileageRate * 100)}p/mile for the first ${st.mileageThreshold.toLocaleString('en-GB')} miles in the tax year, then ${Math.round(st.mileageRateHigh * 100)}p.`; };
   f.miles.addEventListener('input', hint); hint();
+}
+
+/* ---------- oxygen system hire ---------- */
+const hirePrice = (sys, period) => num(settings().hirePrices?.[sysOf(sys).places]?.[period]) ?? DEFAULTS.hirePrices[sysOf(sys).places][period];
+const hireLen = h => { const q = num(h.qty) || 1, p = HIRE_PERIODS[h.period] || 'Day';
+  return h.period === 'weekend' ? (q === 1 ? 'weekend' : q + ' weekends') : q === 1 ? '1 ' + p.toLowerCase() : `${q} ${p.toLowerCase()}s`; };
+// Bookings that overlap. A system can go out the same day the previous hire comes back.
+function hireClash(sys, start, end, exclude){
+  if (!sys || !start) return null; end = end && end >= start ? end : start;
+  return live('hire').find(h => h.id !== exclude && h.system === sys && h.status !== 'returned' &&
+    h.date < (end === start ? addDays(start, 1) : end) && start < ((h.end && h.end > h.date) ? h.end : addDays(h.date, 1))) || null;
+}
+function hireState(h, today = localToday()){
+  if (h.status === 'returned') return { cls: 'chip', txt: 'Returned' };
+  if (h.status === 'out' && h.end && h.end < today) return { cls: 'chip bad', txt: `Overdue ${dayDiff(h.end, today)}d` };
+  if (h.status === 'out') return { cls: 'chip warn', txt: 'On hire' };
+  if (h.date < today) return { cls: 'chip bad', txt: 'Not collected' };
+  return { cls: 'chip', txt: h.date === today ? 'Going out today' : 'Booked' };
+}
+function hireRow(h){
+  const s = hireState(h);
+  return `<li data-act="editHire" data-id="${h.id}"><div class="main">
+    <div class="t">${esc(sysOf(h.system).name)} · ${esc(h.customer || 'No customer recorded')} <span class="${s.cls}">${s.txt}</span></div>
+    <div class="s">${fmtDate(h.date)} → ${h.end ? fmtDate(h.end) : '?'} · ${esc(hireLen(h))}</div>
+    ${h.phone ? `<div class="s"><a href="tel:${esc(h.phone.replace(/\s/g, ''))}" onclick="event.stopPropagation()">${esc(h.phone)}</a></div>` : ''}
+    ${h.status !== 'returned' ? `<div class="row" style="margin-top:6px">${h.status === 'booked' ? `<button class="b small" data-act="hireStatus" data-to="out" data-id="${h.id}">Mark out</button>` : ''}
+      <button class="b small" data-act="hireStatus" data-to="returned" data-id="${h.id}">Mark returned</button></div>` : ''}</div>
+    <div class="amt pos">${num(h.charge) != null ? money(h.charge) : ''}</div></li>`;
+}
+function vHire(){
+  const st = settings(), today = localToday(), e = S.edit?.kind === 'hire' ? getData(S.edit.id) : null;
+  const sys0 = S.hireSys || 'S1';
+  const d = e || { system: sys0, period: 'day', qty: 1, date: today, end: addDays(today, 1), status: 'booked', charge: hirePrice(sys0, 'day') };
+  const hires = live('hire').sort(ord);
+  const open = hires.filter(h => h.status !== 'returned');
+  const q = S.hq.toLowerCase();
+  const done = hires.filter(h => h.status === 'returned' && inYear(h, S.year)).reverse()
+    .filter(h => !q || [h.customer, h.phone, sysOf(h.system).name, h.notes].join(' ').toLowerCase().includes(q));
+  const cards = HIRE_SYSTEMS.map(x => {
+    const mine = open.filter(h => h.system === x.id);
+    const cur = mine.find(h => h.status === 'out') || mine.find(h => h.date <= today);
+    const next = mine.filter(h => h !== cur && h.date > today)[0];
+    const s = cur ? hireState(cur) : { cls: 'chip', txt: 'Available' };
+    return `<div class="tile"><div class="nm">${esc(x.name)}</div><div class="s">${x.places === 1 ? 'Single place' : '2 place'}</div>
+      <div><span class="${s.cls}">${s.txt}</span></div>
+      ${cur ? `<div class="s">${esc(cur.customer || 'No customer')}<br>back ${fmtDate(cur.end)}</div>` : ''}
+      ${next ? `<div class="s">Next: ${fmtDate(next.date)}${next.customer ? ' · ' + esc(next.customer) : ''}</div>` : ''}
+      <button class="b small" data-act="hireBook" data-sys="${x.id}">Book</button></div>`;
+  }).join('');
+  return `${!e ? `<div class="sys">${cards}</div>` : ''}
+  <form id="fHire" class="card" autocomplete="off">
+    <h2>${e ? 'Edit hire' : 'New hire'}</h2>
+    <div class="grid2">
+      <label>System<select name="system">${HIRE_SYSTEMS.map(x => `<option value="${x.id}" ${d.system === x.id ? 'selected' : ''}>${x.name}</option>`).join('')}</select></label>
+      <label>Status<select name="status">${Object.entries(HIRE_STATUS).map(([k, v]) => `<option value="${k}" ${d.status === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+    </div>
+    <div class="grid2">
+      <label>Hire period<select name="period">${Object.entries(HIRE_PERIODS).map(([k, v]) => `<option value="${k}" ${d.period === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+      <label>How many<input name="qty" type="number" min="1" step="1" inputmode="numeric" value="${esc(d.qty ?? 1)}"></label>
+      <label>Hire starts<input name="date" type="date" required value="${esc(d.date)}"></label>
+      <label>Hire finishes<input name="end" type="date" required value="${esc(d.end)}"></label>
+    </div>
+    <div class="warn" id="hWarn" style="margin:-4px 0 8px"></div>
+    <label>Customer<input name="customer" list="dlCust" value="${esc(d.customer)}"></label>
+    <label>Contact number<input name="phone" type="tel" value="${esc(d.phone)}"></label>
+    <label>Charge (£)<input name="charge" type="number" step="0.01" inputmode="decimal" value="${esc(d.charge)}"></label>
+    <p class="muted small" id="hPrice" style="margin:-4px 0 10px"></p>
+    <label>Notes<textarea name="notes" rows="2">${esc(d.notes)}</textarea></label>
+    <div class="row"><button class="b primary">${e ? 'Save changes' : 'Save hire'}</button>
+      ${e || S.hireSys ? `<button type="button" class="b" data-act="cancel">Cancel</button>` : ''}
+      ${e ? `<button type="button" class="b danger" data-act="delete" data-id="${e.id}">Delete</button>` : ''}</div>
+  </form>
+  <datalist id="dlCust">${[...customers().keys()].map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+  ${!e ? `
+  <div class="card"><h2>Out &amp; booked${open.length ? ` <span class="chip">${open.length}</span>` : ''}</h2>
+    ${open.length ? `<ul class="list">${open.map(hireRow).join('')}</ul>` : '<p class="empty-note">Nothing out on hire or booked.</p>'}</div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Returned ${tyLabel(S.year)}</h2>
+      <button class="b small" data-act="csvHire">Export CSV</button></div>
+    <input id="hsearch" type="search" placeholder="Search customer, system…" value="${esc(S.hq)}" style="margin-bottom:10px">
+    ${done.length ? `<ul class="list">${done.map(hireRow).join('')}</ul>` : '<p class="empty-note">No returned hires in this tax year.</p>'}
+  </div>` : ''}`;
+}
+function wireHire(){
+  const f = $('#fHire'); if (!f) return;
+  const custs = customers(), editing = S.edit?.kind === 'hire' ? S.edit.id : null;
+  f.customer.addEventListener('change', () => { const p = custs.get(f.customer.value.trim()); if (p && !f.phone.value) f.phone.value = p; });
+  const qty = () => Math.max(1, Math.round(num(f.qty.value) || 1));
+  const price = () => { const each = hirePrice(f.system.value, f.period.value), q = qty();
+    $('#hPrice').textContent = `${HIRE_PERIODS[f.period.value]} rate for ${sysOf(f.system.value).places === 1 ? 'a single place' : 'the 2 place'} system: ${money(each)}${q > 1 ? ` × ${q} = ${money(each * q)}` : ''}. You can change the charge.`;
+    return each * q; };
+  const check = () => {
+    const c = hireClash(f.system.value, f.date.value, f.end.value, editing);
+    $('#hWarn').textContent = f.end.value && f.date.value && f.end.value < f.date.value ? 'The finish date is before the start date.'
+      : c ? `${sysOf(c.system).name} is already booked ${fmtDate(c.date)} → ${fmtDate(c.end)}${c.customer ? ' for ' + c.customer : ''}.` : '';
+  };
+  // Changing the system, period, length or start suggests a finish date and recalculates the charge.
+  const recalc = () => { if (f.date.value) f.end.value = addDays(f.date.value, qty() * HIRE_DAYS[f.period.value]); f.charge.value = price().toFixed(2); check(); };
+  ['system', 'period', 'qty', 'date'].forEach(n => f[n].addEventListener('change', recalc));
+  f.qty.addEventListener('input', () => { if (num(f.qty.value)) recalc(); });
+  // Changing the finish date works out how many days or weeks that is.
+  f.end.addEventListener('change', () => {
+    const days = f.date.value && f.end.value ? dayDiff(f.date.value, f.end.value) : 0;
+    if (days > 0 && f.period.value !== 'weekend') { f.qty.value = Math.max(1, Math.ceil(days / HIRE_DAYS[f.period.value])); f.charge.value = price().toFixed(2); }
+    check();
+  });
+  price(); check();
 }
 
 function fillRow(f, st){
@@ -508,6 +638,7 @@ function vAccounts(){
   <div class="tiles">
     <div class="tile"><div class="k">Fill returns</div><div class="v pos">${money(t.fillReturns)}</div><div class="x">${t.fills} fills${t.otherReturns ? ` · +${money(t.otherReturns)} other` : ''}</div></div>
     <div class="tile"><div class="k">Service returns</div><div class="v pos">${money(t.serviceReturns)}</div><div class="x">${t.services} job${t.services === 1 ? '' : 's'}</div></div>
+    <div class="tile"><div class="k">Hire returns</div><div class="v pos">${money(t.hireReturns)}</div><div class="x">${t.hires} hire${t.hires === 1 ? '' : 's'}</div></div>
     <div class="tile"><div class="k">Refill costs</div><div class="v">${money(t.refills)}</div><div class="x">${t.refillCount} refills · ${t.swaps} swaps</div></div>
     <div class="tile"><div class="k">Rentals</div><div class="v">${money(t.rentals)}</div><div class="x">cylinder rental</div></div>
     <div class="tile"><div class="k">Tolls &amp; other</div><div class="v">${money(t.tolls + t.other)}</div><div class="x">tolls ${money(t.tolls)}</div></div>
@@ -563,6 +694,9 @@ function vSettings(){
       <label>Default service charge (£)<input name="defaultServiceCharge" type="number" step="0.01" value="${esc(st.defaultServiceCharge)}"></label>
       <label>Test interval (years)<input name="testIntervalYears" type="number" value="${esc(st.testIntervalYears)}"></label>
     </div>
+    <h3>Oxygen system hire prices (£)</h3>
+    ${[1, 2].map(n => `<div class="grid3">${Object.entries(HIRE_PERIODS).map(([k, v]) => `<label>${n === 1 ? 'Single' : '2 place'} · ${v.toLowerCase()}
+      <input name="hp${n}_${k}" type="number" step="0.01" inputmode="decimal" value="${esc(st.hirePrices?.[n]?.[k])}"></label>`).join('')}</div>`).join('')}
     <h3>Mileage allowance</h3>
     <div class="grid3">
       <label>Rate (£/mile)<input name="mileageRate" type="number" step="0.01" value="${esc(st.mileageRate)}"></label>
@@ -584,19 +718,27 @@ function vSettings(){
 document.addEventListener('click', async ev => {
   const el = ev.target.closest('[data-act]'); if (!el) return;
   const a = el.dataset.act, id = el.dataset.id;
-  if (a === 'cancel') { S.edit = null; S.swapPos = null; render(); }
+  if (a === 'cancel') { S.edit = null; S.swapPos = null; S.hireSys = null; render(); }
   else if (a === 'delete') {
     if (!confirm('Delete this record?')) return;
-    await remove(id); S.edit = null; S.swapPos = null; toast('Deleted'); render();
+    await remove(id); S.edit = null; S.swapPos = null; S.hireSys = null; toast('Deleted'); render();
   }
   else if (a === 'editFill') { S.edit = {kind:'fill', id}; S.tab = 'fill'; render(); scrollTo(0, 0); }
   else if (a === 'editSwap') { S.edit = {kind:'swap', id}; S.swapPos = null; render(); scrollTo(0, 0); }
   else if (a === 'swap') { S.edit = null; S.swapPos = +el.dataset.pos; render(); $('#fSwap')?.scrollIntoView({behavior:'smooth'}); }
   else if (a === 'editLedger') {
     const k = el.dataset.kind; S.edit = {kind:k, id};
-    S.tab = k === 'fill' ? 'fill' : k === 'swap' ? 'manifold' : k === 'service' ? 'service' : 'accounts'; render(); scrollTo(0, 0);
+    S.tab = k === 'fill' ? 'fill' : k === 'swap' ? 'manifold' : k === 'service' ? 'service' : k === 'hire' ? 'hire' : 'accounts'; render(); scrollTo(0, 0);
   }
   else if (a === 'editService') { S.edit = {kind:'service', id}; S.tab = 'service'; render(); scrollTo(0, 0); }
+  else if (a === 'editHire') { S.edit = {kind:'hire', id}; S.tab = 'hire'; render(); scrollTo(0, 0); }
+  else if (a === 'hireBook') { S.edit = null; S.hireSys = el.dataset.sys; render(); $('#fHire')?.scrollIntoView({behavior:'smooth'}); }
+  else if (a === 'hireStatus') {
+    const h = getData(id); if (!h) return;
+    await save('hire', { status: el.dataset.to }, id);
+    toast(`${sysOf(h.system).name} ${el.dataset.to === 'out' ? 'marked out on hire' : 'returned'}`); render();
+  }
+  else if (a === 'csvHire') exportHireCsv();
   else if (a === 'csv') exportCsv();
   else if (a === 'csvService') exportServiceCsv();
   else if (a === 'exportJson') exportJson();
@@ -627,6 +769,15 @@ document.addEventListener('submit', async ev => {
       miles: num(v('miles')), tolls: num(v('tolls')), otherCost: num(v('otherCost')), otherDesc: v('otherDesc'), notes: v('notes') }, editing);
     S.edit = null; toast(editing ? 'Service job updated' : 'Service job saved'); render(); scrollTo(0, 0);
   }
+  else if (f.id === 'fHire') {
+    const editing = S.edit?.kind === 'hire' ? S.edit.id : null;
+    if (v('end') < v('date')) { alert('The finish date is before the start date.'); return; }
+    const c = hireClash(v('system'), v('date'), v('end'), editing);
+    if (c && !confirm(`${sysOf(c.system).name} is already booked ${fmtDate(c.date)} → ${fmtDate(c.end)}${c.customer ? ' for ' + c.customer : ''}. Save anyway?`)) return;
+    await save('hire', { system: v('system'), status: v('status'), period: v('period'), qty: Math.max(1, Math.round(num(v('qty')) || 1)),
+      date: v('date'), end: v('end'), customer: v('customer'), phone: v('phone'), charge: num(v('charge')), notes: v('notes') }, editing);
+    S.edit = null; S.hireSys = null; toast(editing ? 'Hire updated' : 'Hire saved'); render(); scrollTo(0, 0);
+  }
   else if (f.id === 'fEntry') {
     const editing = S.edit?.kind === 'entry' ? S.edit.id : null;
     await save('entry', { type: v('type'), date: v('date'), desc: v('desc'), amount: num(v('amount')) }, editing);
@@ -638,6 +789,7 @@ document.addEventListener('submit', async ev => {
       defaultServiceCharge: num(v('defaultServiceCharge')), testIntervalYears: num(v('testIntervalYears')) || 5,
       mileageRate: num(v('mileageRate')) ?? 0.55, mileageRateHigh: num(v('mileageRateHigh')) ?? 0.25,
       mileageThreshold: num(v('mileageThreshold')) ?? 10000,
+      hirePrices: Object.fromEntries([1, 2].map(n => [n, Object.fromEntries(Object.keys(HIRE_PERIODS).map(k => [k, num(v(`hp${n}_${k}`)) ?? DEFAULTS.hirePrices[n][k]]))])),
       sizes: v('sizes').split('\n').map(s => s.trim()).filter(Boolean) }, 'settings');
     toast('Defaults saved'); render();
   }
@@ -649,8 +801,8 @@ document.addEventListener('submit', async ev => {
   }
 });
 document.addEventListener('input', ev => {
-  if (ev.target.id === 'search' || ev.target.id === 'ssearch') {
-    const id = ev.target.id; S[id === 'search' ? 'q' : 'sq'] = ev.target.value; const pos = ev.target.selectionStart;
+  if (ev.target.id === 'search' || ev.target.id === 'ssearch' || ev.target.id === 'hsearch') {
+    const id = ev.target.id; S[{ search: 'q', ssearch: 'sq', hsearch: 'hq' }[id]] = ev.target.value; const pos = ev.target.selectionStart;
     render(); const s = $('#' + id); s.focus(); s.setSelectionRange(pos, pos);
   }
 });
@@ -667,7 +819,7 @@ document.addEventListener('change', async ev => {
     } catch (e) { alert('Could not read that file: ' + e.message); }
   }
 });
-$('#nav').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.tab = b.dataset.tab; S.edit = null; S.swapPos = null; render(); scrollTo(0, 0); });
+$('#nav').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.tab = b.dataset.tab; S.edit = null; S.swapPos = null; S.hireSys = null; render(); scrollTo(0, 0); });
 $('#yearSel').addEventListener('change', e => { S.year = +e.target.value; render(); });
 $('#syncPill').addEventListener('click', () => { if (!S.meta.token) { S.tab = 'settings'; render(); } else sync(true); });
 
@@ -690,6 +842,13 @@ function exportServiceCsv(){
   live('service').filter(s => inYear(s, S.year)).sort(ord).forEach(s => rows.push([s.date, SERVICE_STATUS[s.status] || '', s.customer, s.phone,
     s.size, s.serial, s.work, s.certDate, s.nextDue, s.charge, s.miles, s.tolls, s.otherCost, s.otherDesc, s.notes]));
   download(`oxyservice-service-${tyLabel(S.year).replace('/', '-')}.csv`, rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+}
+function exportHireCsv(){
+  const q = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
+  const rows = [['System', 'Places', 'Hire starts', 'Hire finishes', 'Period', 'How many', 'Status', 'Customer', 'Contact', 'Charge (£)', 'Notes']];
+  live('hire').filter(h => inYear(h, S.year)).sort(ord).forEach(h => rows.push([sysOf(h.system).name, sysOf(h.system).places, h.date, h.end,
+    HIRE_PERIODS[h.period] || '', h.qty, HIRE_STATUS[h.status] || '', h.customer, h.phone, h.charge, h.notes]));
+  download(`oxyservice-hire-${tyLabel(S.year).replace('/', '-')}.csv`, rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
 }
 function exportJson(){
   const records = [...S.recs.values()].map(({dirty, ...r}) => r);
