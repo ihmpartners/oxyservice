@@ -98,7 +98,7 @@ th{color:var(--muted);font-weight:600;font-size:12px}
 th:first-child,td:first-child{text-align:left}
 @media (max-width:520px){.wide{display:none}}
 td.desc{white-space:normal;min-width:130px}
-.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;z-index:9;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:16px;font-size:14px;z-index:9;max-width:calc(100vw - 32px);width:max-content;text-align:center;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:1}
 .warn{color:var(--warn);font-size:13px}
 .chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);white-space:nowrap;vertical-align:middle}
@@ -143,7 +143,7 @@ const tyLabel = y => `${y}/${pad((y + 1) % 100)}`;
 const tyRange = y => `1 Apr ${y} – 31 Mar ${y + 1}`;
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID() :
   'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c === 'x' ? r : (r&3|8)).toString(16); }));
-function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2200); }
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), msg.length > 60 ? 7000 : 2200); }
 
 /* ================= storage (IndexedDB) ================= */
 const IDB = {
@@ -717,10 +717,17 @@ async function sync(manual){
     const url = base ? (base.endsWith('/api/sync') ? base : base + '/api/sync') : 'api/sync';
     const dirty = [...S.recs.values()].filter(r => r.dirty).map(({dirty, ...r}) => r);
     const since = Math.max(0, (S.meta.lastPull || 0) - 60000); // overlap window; applying is idempotent
-    const res = await fetch(url, { method: 'POST', headers: {'content-type': 'application/json', authorization: 'Bearer ' + S.meta.token},
-      body: JSON.stringify({ since, changes: dirty }) });
-    if (!res.ok) throw new Error(res.status === 401 ? 'Sync key not accepted' : `Server replied ${res.status}`);
-    const out = await res.json();
+    const where = new URL(url, location.href).href;
+    if (location.protocol === 'file:' && !base) throw new Error('This copy of the app is opened as a file. Open it from your Cloudflare address (…pages.dev), or enter that address as the sync address.');
+    let res;
+    try {
+      res = await fetch(url, { method: 'POST', cache: 'no-store', headers: {'content-type': 'application/json', authorization: 'Bearer ' + S.meta.token.trim()},
+        body: JSON.stringify({ since, changes: dirty }) });
+    } catch (e) { throw new Error(`Could not reach ${where}. Check the sync address and your connection.`); }
+    const text = await res.text(); let out = null;
+    try { out = JSON.parse(text); } catch {}
+    if (!out) throw new Error(`No sync service found at ${where} (HTTP ${res.status}). The app's "functions" folder may not have been deployed. Deploy with "npx wrangler pages deploy" from the project folder, not by uploading only the public folder.`);
+    if (!res.ok) throw new Error(out.error || `Server replied ${res.status}`);
     const changed = [];
     for (const r of dirty) { const cur = S.recs.get(r.id); if (cur && cur.updated_at === r.updated_at) { cur.dirty = 0; changed.push(cur); } }
     let pulled = 0;

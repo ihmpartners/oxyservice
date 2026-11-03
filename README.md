@@ -44,6 +44,20 @@ Next, open the `https://oxyservice.pages.dev` address it prints:
 
 **Updating the app later:** change `VERSION` in `public/sw.js`, then run `npx wrangler pages deploy`.
 
+## If sync doesn't work
+
+The error is shown in a pop-up when you tap **Save & sync now**, and under **Last error** in Settings.
+
+| Message | Fix |
+|---|---|
+| *SYNC_TOKEN secret is not set… or not redeployed* | Run `npx wrangler pages secret put SYNC_TOKEN --project-name oxyservice`, **then deploy again**. A secret only takes effect from the next deployment. If you set it in the dashboard, add it under **Production** (Settings → Variables and Secrets), then retry the latest deployment. |
+| *The sync key does not match* | The key typed in the app differs from the secret. Set the secret again to a simple key you can type exactly (letters and numbers only), redeploy, and enter it again. |
+| *D1 database is not connected* | Put the real `database_id` in `wrangler.toml` and deploy again. If the project is linked to GitHub, you can instead add a D1 binding named `DB` in the dashboard (Settings → Bindings). |
+| *Database tables have not been created* | Run `npx wrangler d1 execute oxyservice --remote --file schema.sql`. Don't forget `--remote`, or the tables are only created on your computer. |
+| *No sync service found* | Only the `public` folder was uploaded, so the sync code wasn't. Deploy with `npx wrangler pages deploy` from the project folder, not by drag-and-drop. |
+
+To check the server directly: `curl -H "Authorization: Bearer YOUR-KEY" https://oxyservice.pages.dev/api/sync` should reply `{"ok":true,...}`.
+
 ## How the backup works
 
 - Each fill, cylinder change, rental and setting is one row in the D1 table `records`. Each row carries a timestamp from the device that last changed it, and the newest change wins.
