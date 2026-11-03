@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OxyService</title>
+<meta name="description" content="Oxygen transfill log with tax-year accounts">
+<meta name="theme-color" content="#0f5f5a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="OxyService">
+<style>
+:root{
+  --bg:#f3f5f4; --card:#ffffff; --ink:#15211f; --muted:#5d6b68; --line:#d9e0de;
+  --accent:#0f5f5a; --accent-ink:#ffffff; --accent-soft:#e1efed;
+  --good:#1d7a3e; --bad:#b4342a; --warn:#a86a00;
+  --gauge:#0f5f5a; --gauge-low:#c9822b; --gauge-crit:#b4342a;
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1514; --card:#18211f; --ink:#e7eeec; --muted:#93a29f; --line:#2a3633;
+    --accent:#4fb3a9; --accent-ink:#06201d; --accent-soft:#1d2f2c;
+    --good:#5cc27f; --bad:#ef7d72; --warn:#e0a84a; --gauge:#4fb3a9;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1514; --card:#18211f; --ink:#e7eeec; --muted:#93a29f; --line:#2a3633;
+  --accent:#4fb3a9; --accent-ink:#06201d; --accent-soft:#1d2f2c;
+  --good:#5cc27f; --bad:#ef7d72; --warn:#e0a84a; --gauge:#4fb3a9;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--accent);color:var(--accent-ink);
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px}
+header h1{font-size:18px;margin:0;flex:1;letter-spacing:.2px}
+header select{background:rgba(255,255,255,.15);color:inherit;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:6px 8px;font:inherit;font-size:14px}
+header select option{color:#000}
+.pill{font-size:12px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.18);white-space:nowrap;border:0;color:inherit;font-family:inherit;cursor:pointer}
+.pill.err{background:#b4342a;color:#fff}
+main{max-width:780px;margin:0 auto;padding:14px 16px}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:5;background:var(--card);border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:0;padding:10px 2px 12px;font:inherit;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+nav button svg{width:22px;height:22px}
+nav button.on{color:var(--accent);font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+h2{font-size:17px;margin:0 0 12px}
+h3{font-size:15px;margin:18px 0 8px;color:var(--muted);font-weight:600}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:10px}
+input,select,textarea{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);
+  border:1px solid var(--line);border-radius:8px;padding:10px 11px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+input[type=checkbox]{display:inline;width:auto;margin:0 8px 0 0}
+fieldset{border:1px solid var(--line);border-radius:10px;padding:12px 12px 2px;margin:4px 0 12px}
+legend{font-size:13px;font-weight:600;padding:0 6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button.b{font:inherit;font-size:15px;border-radius:9px;padding:10px 16px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.danger{color:var(--bad);border-color:var(--bad)}
+button.small{padding:6px 10px;font-size:13px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.list{list-style:none;margin:0;padding:0}
+.list li{border-top:1px solid var(--line);padding:10px 0;display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.list li:first-child{border-top:0}
+.list .main{flex:1;min-width:0}
+.list .t{font-weight:600}
+.list .s{font-size:13px;color:var(--muted)}
+.amt{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+.tile .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.tile .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+.tile .x{font-size:12px;color:var(--muted)}
+.mani{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.cyl{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
+.cyl .lbl{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.tube{width:38px;height:110px;border:2px solid var(--line);border-radius:14px 14px 8px 8px;position:relative;overflow:hidden;background:var(--bg)}
+.tube::before{content:"";position:absolute;top:-2px;left:12px;width:10px;height:6px;background:var(--line)}
+.tube i{position:absolute;left:0;right:0;bottom:0;background:var(--gauge)}
+.tube i.low{background:var(--gauge-low)} .tube i.crit{background:var(--gauge-crit)}
+.cyl .p{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.cyl .p small{font-size:12px;font-weight:500;color:var(--muted)}
+.cyl .meta{font-size:12px;color:var(--muted);line-height:1.35}
+.cyl.empty .tube{border-style:dashed}
+.tablewrap{overflow-x:auto;margin:0 -16px;padding:0 16px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:12px}
+th:first-child,td:first-child{text-align:left}
+@media (max-width:520px){.wide{display:none}}
+td.desc{white-space:normal;min-width:130px}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;z-index:9;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.warn{color:var(--warn);font-size:13px}
+.chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);white-space:nowrap;vertical-align:middle}
+.chip.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+h2 .chip{font-size:12px}
+.empty-note{padding:18px 0;text-align:center;color:var(--muted)}
+@media (max-width:420px){.mani{gap:6px}.cyl{padding:10px 6px}.tile .v{font-size:19px}}
+@media (min-width:640px){.tiles{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>OxyService</h1>
+  <select id="yearSel" aria-label="Tax year"></select>
+  <button class="pill" id="syncPill" title="Sync now">Local only</button>
+</header>
+<main id="view"></main>
+<nav id="nav">
+  <button data-tab="fill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Fill</button>
+  <button data-tab="manifold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="5" height="14" rx="2"/><rect x="9.5" y="7" width="5" height="14" rx="2"/><rect x="16" y="7" width="5" height="14" rx="2"/><path d="M5.5 7V4h13v3"/></svg>Manifold</button>
+  <button data-tab="service"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></svg>Service</button>
+  <button data-tab="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Log</button>
+  <button data-tab="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Accounts</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => (v === '' || v == null || isNaN(+v)) ? null : +v;
+const money = n => (n < 0 ? '−' : '') + '£' + Math.abs(+n || 0).toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2});
+const pad = n => String(n).padStart(2, '0');
+const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const fmtDate = ds => ds ? new Date(ds + 'T12:00:00').toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : '';
+// UK tax year: 1 April – 31 March. Year key = calendar year in which it starts.
+const taxYearOf = ds => { const [y, m] = ds.split('-').map(Number); return m >= 4 ? y : y - 1; };
+const tyLabel = y => `${y}/${pad((y + 1) % 100)}`;
+const tyRange = y => `1 Apr ${y} – 31 Mar ${y + 1}`;
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() :
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c === 'x' ? r : (r&3|8)).toString(16); }));
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2200); }
+
+/* ================= storage (IndexedDB) ================= */
+const IDB = {
+  db: null,
+  open(){ return new Promise((res, rej) => {
+    const r = indexedDB.open('oxyservice', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('records', {keyPath:'id'}); r.result.createObjectStore('meta'); };
+    r.onsuccess = () => { this.db = r.result; res(); };
+    r.onerror = () => rej(r.error);
+  }); },
+  tx(store, mode, fn){ return new Promise((res, rej) => {
+    const t = this.db.transaction(store, mode); const s = t.objectStore(store); const out = fn(s);
+    t.oncomplete = () => res(out && out.result !== undefined ? out.result : undefined); t.onerror = () => rej(t.error);
+  }); },
+  all(){ return this.tx('records', 'readonly', s => s.getAll()); },
+  put(rec){ return this.tx('records', 'readwrite', s => s.put(rec)); },
+  putMany(recs){ return this.tx('records', 'readwrite', s => { recs.forEach(r => s.put(r)); }); },
+  getMeta(k){ return this.tx('meta', 'readonly', s => s.get(k)); },
+  setMeta(k, v){ return this.tx('meta', 'readwrite', s => s.put(v, k)); },
+};
+
+/* ================= state ================= */
+// Each record: {id, kind, data, updated_at, deleted, dirty}
+// kinds: fill | swap | service | entry (rental / other cost / other income / mileage) | settings
+const S = { recs: new Map(), meta: {}, tab: 'fill', year: null, edit: null, swapPos: null, q: '', sq: '' };
+const DEFAULTS = { unit: 'psi', fullPressure: 2200, lowPressure: 500, defaultCharge: 25, defaultRefillCost: 46.86,
+  sizes: ['Ultra-lite', 'CD', 'D', 'E', 'F', '2 L', '3 L', '5 L', '7 L', '10 L', '12 L'],
+  // HMRC approved mileage rates 2026/27: 55p for the first 10,000 business miles in the tax year, 25p after
+  mileageRate: 0.55, mileageRateHigh: 0.25, mileageThreshold: 10000, defaultServiceCharge: null, testIntervalYears: 5 };
+const WORK_TYPES = ['Test & certification', 'Visual inspection', 'Valve service', 'Valve replacement', 'Test & valve service'];
+const SERVICE_STATUS = { in: 'In for service', ready: 'Ready to collect', returned: 'Returned' };
+const settings = () => Object.assign({}, DEFAULTS, S.recs.get('settings')?.data || {});
+const live = kind => [...S.recs.values()].filter(r => r.kind === kind && !r.deleted).map(r => ({...r.data, id: r.id}));
+const getData = id => { const r = S.recs.get(id); return r && !r.deleted ? {...r.data, id} : null; };
+const ord = (a, b) => (a.date || '').localeCompare(b.date || '') || (a.created || 0) - (b.created || 0);
+
+async function save(kind, data, id){
+  const prev = id && S.recs.get(id);
+  const rec = { id: id || uuid(), kind, data: {...(prev?.data || {}), ...data, created: prev?.data?.created || Date.now()},
+                updated_at: Date.now(), deleted: 0, dirty: 1 };
+  delete rec.data.id;
+  S.recs.set(rec.id, rec); await IDB.put(rec); scheduleSync(); return rec;
+}
+async function remove(id){
+  const r = S.recs.get(id); if (!r) return;
+  Object.assign(r, { deleted: 1, updated_at: Date.now(), dirty: 1 });
+  await IDB.put(r); scheduleSync();
+}
+
+/* ================= derived data ================= */
+function manifold(){
+  // Walk swaps and fills in date order to get the live state of each manifold position.
+  const pos = {1:null, 2:null, 3:null};
+  const ev = [...live('swap').map(s => ({...s, _t:'swap'})), ...live('fill').map(f => ({...f, _t:'fill'}))].sort(ord);
+  for (const e of ev){
+    if (e._t === 'swap'){
+      pos[e.position] = e.empty ? null : { serial: e.serial, fitted: e.date, pressure: num(e.pressure), pDate: e.date, fills: 0, swapId: e.id };
+    } else {
+      for (const p of [1,2,3]){
+        const v = num(e.manifold?.[p]);
+        if (pos[p]) { if (v != null) { pos[p].pressure = v; pos[p].pDate = e.date; } pos[p].fills++; }
+      }
+    }
+  }
+  return pos;
+}
+const nextFillNo = () => live('fill').reduce((m, f) => Math.max(m, num(f.no) || 0), 0) + 1;
+function customers(){
+  const m = new Map();
+  [...live('fill'), ...live('service')].sort(ord).forEach(f => { if (f.customer) m.set(f.customer.trim(), f.phone || m.get(f.customer.trim()) || ''); });
+  return m;
+}
+function years(){
+  const ys = new Set([taxYearOf(localToday())]);
+  for (const k of ['fill','swap','entry','service']) live(k).forEach(r => r.date && ys.add(taxYearOf(r.date)));
+  return [...ys].sort((a, b) => b - a);
+}
+const inYear = (r, y) => r.date && taxYearOf(r.date) === y;
+const ENTRY_TYPES = { rental: 'Cylinder rental', cost: 'Other cost / toll', income: 'Other income', mileage: 'Business mileage' };
+
+function ledger(y){
+  const rows = [];
+  live('fill').filter(f => inYear(f, y)).forEach(f => rows.push({ date: f.date, created: f.created, id: f.id, kind: 'fill',
+    desc: `Fill #${f.no ?? '?'}${f.customer ? ' – ' + f.customer : ''}`, inc: num(f.charge) || 0, cost: 0 }));
+  live('swap').filter(s => inYear(s, y) && num(s.cost)).forEach(s => rows.push({ date: s.date, created: s.created, id: s.id, kind: 'swap',
+    desc: `Cylinder ${s.position} refill${s.serial ? ' (' + s.serial + ')' : ''}`, inc: 0, cost: num(s.cost) }));
+  live('entry').filter(e => inYear(e, y)).forEach(e => {
+    if (e.type === 'mileage') { rows.push({ date: e.date, created: e.created, id: e.id, kind: 'entry', cat: 'mileage', miles: num(e.amount) || 0,
+      desc: 'Business mileage' + (e.desc ? ' – ' + e.desc : ''), inc: 0, cost: 0 }); return; }
+    rows.push({ date: e.date, created: e.created, id: e.id, kind: 'entry', cat: e.type === 'rental' ? 'rental' : e.type === 'income' ? 'otherInc' : 'other',
+      desc: (ENTRY_TYPES[e.type] || 'Entry') + (e.desc ? ' – ' + e.desc : ''), inc: e.type === 'income' ? (num(e.amount) || 0) : 0,
+      cost: e.type === 'income' ? 0 : (num(e.amount) || 0) });
+  });
+  live('service').filter(s => inYear(s, y)).forEach(s => {
+    const who = s.customer || s.serial || 'cylinder';
+    const base = { date: s.date, created: s.created, id: s.id, kind: 'service' };
+    rows.push({ ...base, cat: 'service', desc: `Service – ${who}${s.work ? ' (' + s.work + ')' : ''}`, inc: num(s.charge) || 0, cost: 0 });
+    if (num(s.tolls)) rows.push({ ...base, created: (s.created || 0) + .1, cat: 'tolls', desc: `Tolls – ${who}`, inc: 0, cost: num(s.tolls) });
+    if (num(s.otherCost)) rows.push({ ...base, created: (s.created || 0) + .2, cat: 'other', desc: `${s.otherDesc || 'Service cost'} – ${who}`, inc: 0, cost: num(s.otherCost) });
+    if (num(s.miles)) rows.push({ ...base, created: (s.created || 0) + .3, cat: 'mileage', miles: num(s.miles), desc: `Mileage – ${who}`, inc: 0, cost: 0 });
+  });
+  rows.sort(ord);
+  // Mileage allowance: standard rate up to the threshold in the tax year, lower rate after it.
+  const st = settings(); let miles = 0;
+  rows.forEach(r => {
+    if (r.cat !== 'mileage') return;
+    const low = Math.max(0, Math.min(r.miles, st.mileageThreshold - miles));
+    r.cost = Math.round((low * st.mileageRate + (r.miles - low) * st.mileageRateHigh) * 100) / 100;
+    r.desc += ` · ${r.miles} mi`; miles += r.miles;
+  });
+  let ci = 0, cc = 0;
+  rows.forEach(r => { ci += r.inc; cc += r.cost; r.runInc = ci; r.runCost = cc; r.runNet = ci - cc; });
+  return rows;
+}
+function totals(y){
+  const L = ledger(y);
+  const t = { returns: 0, fillReturns: 0, serviceReturns: 0, otherReturns: 0, refills: 0, rentals: 0, other: 0, tolls: 0,
+              miles: 0, mileage: 0, fills: 0, services: 0, refillCount: 0 };
+  L.forEach(r => {
+    t.returns += r.inc;
+    if (r.kind === 'fill') { t.fillReturns += r.inc; t.fills++; }
+    else if (r.kind === 'swap') { t.refills += r.cost; t.refillCount++; }
+    else if (r.cat === 'service') { t.serviceReturns += r.inc; t.services++; }
+    else if (r.cat === 'otherInc') t.otherReturns += r.inc;
+    else if (r.cat === 'rental') t.rentals += r.cost;
+    else if (r.cat === 'tolls') t.tolls += r.cost;
+    else if (r.cat === 'mileage') { t.miles += r.miles; t.mileage += r.cost; }
+    else t.other += r.cost;
+  });
+  // swaps with no cost still count as cylinder changes
+  t.swaps = live('swap').filter(s => inYear(s, y) && !s.empty).length;
+  t.costs = t.refills + t.rentals + t.other + t.tolls; t.cashNet = t.returns - t.costs; t.net = t.cashNet - t.mileage;
+  return t;
+}
+function certifications(){
+  // Latest certification per cylinder (by serial, else per job), soonest due first.
+  const m = new Map();
+  live('service').filter(s => s.nextDue).sort((a, b) => (a.certDate || a.date).localeCompare(b.certDate || b.date))
+    .forEach(s => m.set(s.serial ? s.serial.trim().toUpperCase() : s.id, s));
+  const today = localToday();
+  return [...m.values()].map(s => ({ ...s, days: Math.round((new Date(s.nextDue + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) }))
+    .sort((a, b) => a.nextDue.localeCompare(b.nextDue));
+}
+
+/* ================= views ================= */
+function render(){
+  const ys = years();
+  if (S.year == null || !ys.includes(S.year)) S.year = taxYearOf(localToday());
+  $('#yearSel').innerHTML = ys.map(y => `<option value="${y}" ${y === S.year ? 'selected' : ''}>${tyLabel(y)}</option>`).join('');
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
+  $('#view').innerHTML = ({ fill: vFill, manifold: vManifold, service: vService, log: vLog, accounts: vAccounts, settings: vSettings })[S.tab]();
+  if (S.tab === 'fill') wireFill();
+  if (S.tab === 'service') wireService();
+}
+
+function dueChip(c){
+  const cls = c.days < 0 ? 'chip bad' : c.days <= 60 ? 'chip warn' : 'chip';
+  const txt = c.days < 0 ? `Overdue ${-c.days} day${c.days === -1 ? '' : 's'}` : c.days === 0 ? 'Due today' : c.days <= 60 ? `Due in ${c.days} days` : 'Due ' + fmtDate(c.nextDue);
+  return `<span class="${cls}">${txt}</span>`;
+}
+function serviceRow(s){
+  const st = settings();
+  const costs = (num(s.tolls) || 0) + (num(s.otherCost) || 0);
+  return `<li data-act="editService" data-id="${s.id}"><div class="main">
+    <div class="t">${esc(s.customer || 'No customer recorded')} <span class="chip ${s.status === 'returned' ? '' : 'warn'}">${SERVICE_STATUS[s.status] || SERVICE_STATUS.in}</span></div>
+    <div class="s">${fmtDate(s.date)}${s.work ? ' · ' + esc(s.work) : ''}${s.size ? ' · ' + esc(s.size) : ''}${s.serial ? ' · ' + esc(s.serial) : ''}</div>
+    ${s.nextDue ? `<div class="s">Next test due ${fmtDate(s.nextDue)}</div>` : ''}
+    ${num(s.miles) || costs ? `<div class="s">${num(s.miles) ? s.miles + ' mi' : ''}${num(s.miles) && costs ? ' · ' : ''}${costs ? 'costs ' + money(costs) : ''}</div>` : ''}
+    ${s.phone ? `<div class="s"><a href="tel:${esc(s.phone.replace(/\s/g, ''))}" onclick="event.stopPropagation()">${esc(s.phone)}</a></div>` : ''}</div>
+    <div class="amt pos">${num(s.charge) != null ? money(s.charge) : ''}</div></li>`;
+}
+function vService(){
+  const st = settings(), e = S.edit?.kind === 'service' ? getData(S.edit.id) : null;
+  const d = e || { date: localToday(), status: 'in', charge: st.defaultServiceCharge };
+  const q = S.sq.toLowerCase();
+  const jobs = live('service').sort(ord).reverse();
+  const open = jobs.filter(s => s.status !== 'returned');
+  const yearJobs = jobs.filter(s => inYear(s, S.year) && s.status === 'returned')
+    .filter(s => !q || [s.customer, s.phone, s.serial, s.size, s.work, s.notes].join(' ').toLowerCase().includes(q));
+  const certs = certifications();
+  const soon = certs.filter(c => c.days <= 60);
+  return `<form id="fService" class="card" autocomplete="off">
+    <h2>${e ? 'Edit service job' : 'Cylinder in for service'}</h2>
+    <div class="grid2">
+      <label>Date taken in<input name="date" type="date" required value="${esc(d.date)}"></label>
+      <label>Status<select name="status">${Object.entries(SERVICE_STATUS).map(([k, v]) => `<option value="${k}" ${d.status === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+    </div>
+    <label>Customer<input name="customer" list="dlCust" value="${esc(d.customer)}"></label>
+    <label>Contact number<input name="phone" type="tel" value="${esc(d.phone)}"></label>
+    <div class="grid2">
+      <label>Cylinder size<input name="size" list="dlSize" value="${esc(d.size)}"></label>
+      <label>Cylinder serial no.<input name="serial" value="${esc(d.serial)}"></label>
+    </div>
+    <label>Work<input name="work" list="dlWork" value="${esc(d.work)}" placeholder="e.g. Test &amp; certification"></label>
+    <div class="grid2">
+      <label>Certified / tested on<input name="certDate" type="date" value="${esc(d.certDate)}"></label>
+      <label>Next test due<input name="nextDue" type="date" value="${esc(d.nextDue)}"></label>
+    </div>
+    <label>Charge to customer (£)<input name="charge" type="number" step="0.01" inputmode="decimal" value="${esc(d.charge)}"></label>
+    <fieldset><legend>Your costs for this job</legend>
+      <div class="grid2">
+        <label>Mileage (miles)<input name="miles" type="number" step="0.1" inputmode="decimal" value="${esc(d.miles)}"></label>
+        <label>Tolls (£)<input name="tolls" type="number" step="0.01" inputmode="decimal" value="${esc(d.tolls)}"></label>
+        <label>Other cost (£)<input name="otherCost" type="number" step="0.01" inputmode="decimal" value="${esc(d.otherCost)}"></label>
+        <label>Other cost is for<input name="otherDesc" value="${esc(d.otherDesc)}" placeholder="e.g. test station fee"></label>
+      </div>
+      <p class="muted small" id="mileHint" style="margin:0 0 10px"></p>
+    </fieldset>
+    <label>Notes<textarea name="notes" rows="2">${esc(d.notes)}</textarea></label>
+    <div class="row"><button class="b primary">${e ? 'Save changes' : 'Save job'}</button>
+      ${e ? `<button type="button" class="b" data-act="cancel">Cancel</button><button type="button" class="b danger" data-act="delete" data-id="${e.id}">Delete</button>` : ''}</div>
+  </form>
+  <datalist id="dlCust">${[...customers().keys()].map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+  <datalist id="dlSize">${st.sizes.map(s => `<option value="${esc(s)}">`).join('')}</datalist>
+  <datalist id="dlWork">${WORK_TYPES.map(s => `<option value="${esc(s)}">`).join('')}</datalist>
+  ${!e ? `
+  <div class="card"><h2>In the workshop</h2>${open.length ? `<ul class="list">${open.map(serviceRow).join('')}</ul>` : '<p class="empty-note">No cylinders in for service.</p>'}</div>
+  <div class="card"><h2>Certifications due${soon.length ? ` <span class="chip warn">${soon.length}</span>` : ''}</h2>
+    <p class="muted small" style="margin-top:-6px">Latest test for each cylinder, soonest first. Tap to open the job.</p>
+    ${certs.length ? `<ul class="list">${certs.slice(0, 30).map(c => `<li data-act="editService" data-id="${c.id}"><div class="main">
+      <div class="t">${esc(c.serial || c.size || 'Cylinder')} · ${esc(c.customer || '')}</div>
+      <div class="s">Tested ${fmtDate(c.certDate || c.date)} · due ${fmtDate(c.nextDue)}</div>
+      ${c.phone ? `<div class="s"><a href="tel:${esc(c.phone.replace(/\s/g, ''))}" onclick="event.stopPropagation()">${esc(c.phone)}</a></div>` : ''}</div>
+      <div>${dueChip(c)}</div></li>`).join('')}</ul>` : '<p class="empty-note">Add a "next test due" date to a service job to track it here.</p>'}
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Completed ${tyLabel(S.year)}</h2>
+      <button class="b small" data-act="csvService">Export CSV</button></div>
+    <input id="ssearch" type="search" placeholder="Search customer, serial…" value="${esc(S.sq)}" style="margin-bottom:10px">
+    ${yearJobs.length ? `<ul class="list">${yearJobs.map(serviceRow).join('')}</ul>` : '<p class="empty-note">No completed service jobs in this tax year.</p>'}
+  </div>` : ''}`;
+}
+function wireService(){
+  const f = $('#fService'); if (!f) return;
+  const st = settings(), custs = customers();
+  f.customer.addEventListener('change', () => { const p = custs.get(f.customer.value.trim()); if (p && !f.phone.value) f.phone.value = p; });
+  f.certDate.addEventListener('change', () => {
+    if (f.certDate.value && !f.nextDue.value) { const [y, m, d] = f.certDate.value.split('-'); f.nextDue.value = `${+y + (+st.testIntervalYears || 5)}-${m}-${d}`; }
+  });
+  const hint = () => { const mi = num(f.miles.value);
+    $('#mileHint').textContent = mi ? `${mi} miles ≈ ${money(mi * st.mileageRate)} mileage allowance at ${Math.round(st.mileageRate * 100)}p/mile (counted against your returns in Accounts).` : `Mileage is claimed at ${Math.round(st.mileageRate * 100)}p/mile for the first ${st.mileageThreshold.toLocaleString('en-GB')} miles in the tax year, then ${Math.round(st.mileageRateHigh * 100)}p.`; };
+  f.miles.addEventListener('input', hint); hint();
+}
+
+function fillRow(f, st){
+  const m = [1,2,3].filter(p => num(f.manifold?.[p]) != null).map(p => `${p}: ${f.manifold[p]}`).join(' · ');
+  return `<li data-act="editFill" data-id="${f.id}">
+    <div class="main"><div class="t">#${esc(f.no ?? '?')} ${esc(f.customer || 'No customer recorded')}</div>
+    <div class="s">${fmtDate(f.date)}${f.size ? ' · ' + esc(f.size) : ''}${num(f.startP) != null || num(f.finalP) != null ? ` · ${esc(f.startP ?? '?')} → ${esc(f.finalP ?? '?')} ${st.unit}` : ''}</div>
+    ${m ? `<div class="s">Manifold after: ${esc(m)}</div>` : ''}
+    ${f.phone ? `<div class="s"><a href="tel:${esc(f.phone.replace(/\s/g, ''))}" onclick="event.stopPropagation()">${esc(f.phone)}</a></div>` : ''}</div>
+    <div class="amt pos">${num(f.charge) != null ? money(f.charge) : ''}</div></li>`;
+}
+
+function vFill(){
+  const st = settings(), e = S.edit?.kind === 'fill' ? getData(S.edit.id) : null, d = e || {};
+  const m = manifold();
+  const active = [1,2,3].filter(p => m[p] || num(d.manifold?.[p]) != null);
+  const recent = live('fill').sort(ord).reverse().slice(0, 5);
+  return `<form id="fFill" class="card" autocomplete="off">
+    <h2>${e ? 'Edit fill #' + esc(d.no) : 'New transfill'}</h2>
+    <div class="grid2">
+      <label>Fill no.<input name="no" type="number" inputmode="numeric" value="${esc(d.no ?? nextFillNo())}"></label>
+      <label>Date<input name="date" type="date" required value="${esc(d.date || localToday())}"></label>
+    </div>
+    <label>Customer<input name="customer" list="dlCust" value="${esc(d.customer)}"></label>
+    <label>Contact number<input name="phone" type="tel" value="${esc(d.phone)}"></label>
+    <label>Cylinder size<input name="size" list="dlSize" value="${esc(d.size)}" placeholder="e.g. D, 2 L"></label>
+    <div class="grid2">
+      <label>Start pressure (${st.unit})<input name="startP" type="number" inputmode="numeric" value="${esc(d.startP)}"></label>
+      <label>Final fill pressure (${st.unit})<input name="finalP" type="number" inputmode="numeric" value="${esc(d.finalP)}"></label>
+    </div>
+    <div class="warn" id="pWarn"></div>
+    <label>Charge (£)<input name="charge" type="number" step="0.01" inputmode="decimal" value="${esc(d.charge ?? st.defaultCharge)}"></label>
+    <fieldset><legend>Manifold pressures after fill (${st.unit})</legend>
+      ${active.length ? `<div class="grid3">${active.map(p => `<label>Cyl ${p}${m[p]?.serial ? ' · ' + esc(m[p].serial) : ''}
+          <input name="m${p}" type="number" inputmode="numeric" value="${esc(d.manifold?.[p] ?? '')}"
+          placeholder="${!e && m[p]?.pressure != null ? m[p].pressure : ''}"></label>`).join('')}</div>
+        ${!e ? '<p class="muted small" style="margin:0 0 10px">Faint numbers are the last recorded pressures.</p>' : ''}`
+        : '<p class="muted small">No manifold cylinders fitted yet — add one on the Manifold tab.</p>'}
+    </fieldset>
+    <label>Notes<textarea name="notes" rows="2">${esc(d.notes)}</textarea></label>
+    <div class="row"><button class="b primary">${e ? 'Save changes' : 'Save fill'}</button>
+      ${e ? `<button type="button" class="b" data-act="cancel">Cancel</button><button type="button" class="b danger" data-act="delete" data-id="${e.id}">Delete</button>` : ''}</div>
+  </form>
+  <datalist id="dlCust">${[...customers().keys()].map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+  <datalist id="dlSize">${st.sizes.map(s => `<option value="${esc(s)}">`).join('')}</datalist>
+  ${!e ? `<div class="card"><h2>Recent fills</h2>${recent.length ? `<ul class="list">${recent.map(f => fillRow(f, st)).join('')}</ul>` : '<p class="empty-note">No fills yet.</p>'}</div>` : ''}`;
+}
+function wireFill(){
+  const f = $('#fFill'); if (!f) return;
+  const custs = customers();
+  f.customer.addEventListener('change', () => { const p = custs.get(f.customer.value.trim()); if (p && !f.phone.value) f.phone.value = p; });
+  const chk = () => { const a = num(f.startP.value), b = num(f.finalP.value);
+    $('#pWarn').textContent = a != null && b != null && b < a ? 'Final pressure is lower than start pressure.' : ''; };
+  f.startP.addEventListener('input', chk); f.finalP.addEventListener('input', chk);
+}
+
+function vManifold(){
+  const st = settings(), m = manifold();
+  const sw = S.edit?.kind === 'swap' ? getData(S.edit.id) : null;
+  const showForm = sw || S.swapPos;
+  const d = sw || { position: S.swapPos, date: localToday(), pressure: st.fullPressure, cost: st.defaultRefillCost };
+  const cards = [1,2,3].map(p => {
+    const c = m[p];
+    if (!c) return `<div class="cyl empty"><div class="lbl">Cylinder ${p}</div><div class="tube"></div><div class="p muted">Empty</div>
+      <button class="b small" data-act="swap" data-pos="${p}">Fit cylinder</button></div>`;
+    const pct = c.pressure != null ? Math.max(0, Math.min(100, c.pressure / st.fullPressure * 100)) : 0;
+    const cls = c.pressure != null && c.pressure <= st.lowPressure ? 'crit' : pct < 40 ? 'low' : '';
+    return `<div class="cyl"><div class="lbl">Cylinder ${p}</div>
+      <div class="tube" title="${Math.round(pct)}%"><i class="${cls}" style="height:${pct}%"></i></div>
+      <div class="p">${c.pressure ?? '—'} <small>${st.unit}</small></div>
+      <div class="meta">${c.serial ? esc(c.serial) + '<br>' : ''}Fitted ${fmtDate(c.fitted)}<br>${c.fills} fill${c.fills === 1 ? '' : 's'} since</div>
+      <button class="b small" data-act="swap" data-pos="${p}">Swap</button></div>`;
+  }).join('');
+  const hist = live('swap').sort(ord).reverse();
+  return `<div class="mani">${cards}</div>
+  ${showForm ? `<form id="fSwap" class="card">
+    <h2>${sw ? 'Edit cylinder change' : 'Cylinder swap / refill'}</h2>
+    <div class="grid2">
+      <label>Position<select name="position">${[1,2,3].map(p => `<option ${+d.position === p ? 'selected' : ''}>${p}</option>`).join('')}</select></label>
+      <label>Replacement date<input name="date" type="date" required value="${esc(d.date)}"></label>
+    </div>
+    <label><span class="row" style="color:var(--ink)"><input type="checkbox" name="empty" ${d.empty ? 'checked' : ''}>Remove only — leave this position empty</span></label>
+    <label>Cylinder ID / serial<input name="serial" value="${esc(d.serial)}" placeholder="optional"></label>
+    <div class="grid2">
+      <label>Pressure when fitted (${st.unit})<input name="pressure" type="number" inputmode="numeric" value="${esc(d.pressure)}"></label>
+      <label>Refill cost (£)<input name="cost" type="number" step="0.01" inputmode="decimal" value="${esc(d.cost)}"></label>
+    </div>
+    <label>Notes<textarea name="notes" rows="2">${esc(d.notes)}</textarea></label>
+    <div class="row"><button class="b primary">Save</button><button type="button" class="b" data-act="cancel">Cancel</button>
+      ${sw ? `<button type="button" class="b danger" data-act="delete" data-id="${sw.id}">Delete</button>` : ''}</div>
+  </form>` : ''}
+  <div class="card"><h2>Cylinder changes</h2>
+    ${hist.length ? `<ul class="list">${hist.map(s => `<li data-act="editSwap" data-id="${s.id}"><div class="main">
+      <div class="t">Cylinder ${s.position} ${s.empty ? 'removed' : 'replaced'}${s.serial ? ' · ' + esc(s.serial) : ''}</div>
+      <div class="s">${fmtDate(s.date)}${num(s.pressure) != null && !s.empty ? ` · fitted at ${s.pressure} ${st.unit}` : ''}${s.notes ? ' · ' + esc(s.notes) : ''}</div></div>
+      <div class="amt neg">${num(s.cost) != null ? money(-s.cost) : '<span class="muted small">no cost</span>'}</div></li>`).join('')}</ul>`
+      : '<p class="empty-note">No cylinder changes recorded.</p>'}
+  </div>`;
+}
+
+function vLog(){
+  const st = settings(), q = S.q.toLowerCase();
+  const fills = live('fill').filter(f => inYear(f, S.year)).sort(ord).reverse()
+    .filter(f => !q || [f.customer, f.phone, f.size, f.notes, String(f.no)].join(' ').toLowerCase().includes(q));
+  const tot = fills.reduce((a, f) => a + (num(f.charge) || 0), 0);
+  return `<div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Fills ${tyLabel(S.year)}</h2>
+      <button class="b small" data-act="csv">Export CSV</button></div>
+    <p class="muted small" style="margin:0 0 10px">${tyRange(S.year)} · ${fills.length} fill${fills.length === 1 ? '' : 's'} · ${money(tot)}</p>
+    <input id="search" type="search" placeholder="Search customer, phone, size…" value="${esc(S.q)}" style="margin-bottom:10px">
+    ${fills.length ? `<ul class="list">${fills.map(f => fillRow(f, st)).join('')}</ul>` : '<p class="empty-note">No fills in this tax year.</p>'}
+  </div>`;
+}
+
+function vAccounts(){
+  const y = S.year, t = totals(y), L = ledger(y);
+  const en = S.edit?.kind === 'entry' ? getData(S.edit.id) : null;
+  const d = en || { date: localToday(), type: 'rental' };
+  return `<p class="muted small" style="margin:0 0 10px">Tax year ${tyLabel(y)} · ${tyRange(y)}</p>
+  <div class="tiles">
+    <div class="tile"><div class="k">Fill returns</div><div class="v pos">${money(t.fillReturns)}</div><div class="x">${t.fills} fills${t.otherReturns ? ` · +${money(t.otherReturns)} other` : ''}</div></div>
+    <div class="tile"><div class="k">Service returns</div><div class="v pos">${money(t.serviceReturns)}</div><div class="x">${t.services} job${t.services === 1 ? '' : 's'}</div></div>
+    <div class="tile"><div class="k">Refill costs</div><div class="v">${money(t.refills)}</div><div class="x">${t.refillCount} refills · ${t.swaps} swaps</div></div>
+    <div class="tile"><div class="k">Rentals</div><div class="v">${money(t.rentals)}</div><div class="x">cylinder rental</div></div>
+    <div class="tile"><div class="k">Tolls &amp; other</div><div class="v">${money(t.tolls + t.other)}</div><div class="x">tolls ${money(t.tolls)}</div></div>
+    <div class="tile"><div class="k">Mileage allowance</div><div class="v">${money(t.mileage)}</div><div class="x">${(+t.miles.toFixed(1)).toLocaleString('en-GB')} miles</div></div>
+  </div>
+  <div class="tile" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div><div class="k">Net for ${tyLabel(y)}</div><div class="v ${t.net < 0 ? 'neg' : 'pos'}" style="font-size:26px">${money(t.net)}</div>
+    <div class="x">returns ${money(t.returns)} − costs ${money(t.costs)} − mileage ${money(t.mileage)}</div></div>
+    <div class="x" style="text-align:right">Before mileage allowance<br><b style="font-size:15px;color:var(--ink)">${money(t.cashNet)}</b></div>
+  </div>
+  <form id="fEntry" class="card">
+    <h2>${en ? 'Edit entry' : 'Add rental, cost, mileage or income'}</h2>
+    <p class="muted small" style="margin-top:-6px">Mileage and tolls for service jobs are entered on the job itself. Use this for other trips, such as collecting manifold refills.</p>
+    <div class="grid2">
+      <label>Type<select name="type">${Object.entries(ENTRY_TYPES).map(([k, v]) => `<option value="${k}" ${d.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+      <label>Date<input name="date" type="date" required value="${esc(d.date)}"></label>
+    </div>
+    <label>Description<input name="desc" value="${esc(d.desc)}" placeholder="e.g. Annual rental, 2 cylinders"></label>
+    <label><span id="amtLbl">${d.type === 'mileage' ? 'Miles' : 'Amount (£)'}</span><input name="amount" type="number" step="0.01" inputmode="decimal" required value="${esc(d.amount)}"></label>
+    <div class="row"><button class="b primary">${en ? 'Save changes' : 'Add'}</button>
+      ${en ? `<button type="button" class="b" data-act="cancel">Cancel</button><button type="button" class="b danger" data-act="delete" data-id="${en.id}">Delete</button>` : ''}</div>
+  </form>
+  <div class="card"><h2>Running totals</h2>
+    <p class="muted small" style="margin-top:-6px">Tap a row to edit it.</p>
+    ${L.length ? `<div class="tablewrap"><table><thead><tr><th>Item</th><th>Amount</th><th class="wide">Returns</th><th class="wide">Costs</th><th>Running net</th></tr></thead><tbody>
+      ${L.map(r => `<tr data-act="editLedger" data-kind="${r.kind}" data-id="${r.id}" style="cursor:pointer">
+        <td class="desc">${esc(r.desc)}<div class="muted" style="font-size:12px">${fmtDate(r.date)}</div></td>
+        <td class="${r.inc ? 'pos' : r.cost ? 'neg' : 'muted'}">${r.inc ? '+' + money(r.inc) : r.cost ? money(-r.cost) : '–'}</td>
+        <td class="wide">${money(r.runInc)}</td><td class="wide">${money(r.runCost)}</td><td class="${r.runNet < 0 ? 'neg' : 'pos'}"><b>${money(r.runNet)}</b></td></tr>`).join('')}
+      </tbody></table></div>` : '<p class="empty-note">Nothing recorded in this tax year yet.</p>'}
+  </div>`;
+}
+
+function vSettings(){
+  const st = settings(), mt = S.meta;
+  const pending = [...S.recs.values()].filter(r => r.dirty).length;
+  return `<form id="fSync" class="card">
+    <h2>Cloud backup &amp; sync</h2>
+    <p class="muted small" style="margin-top:0">Data is always saved on this device first and works fully offline. When online, changes are sent to your Cloudflare database and pulled from your other devices.</p>
+    <label>Sync address<input name="url" value="${esc(mt.syncUrl || '')}" placeholder="Leave blank if this app is hosted on Cloudflare"></label>
+    <label>Sync key<input name="token" type="password" value="${esc(mt.token || '')}" placeholder="The SYNC_TOKEN you set in Cloudflare"></label>
+    <p class="small muted">${pending} change${pending === 1 ? '' : 's'} waiting · Last sync: ${mt.lastSync ? new Date(mt.lastSync).toLocaleString('en-GB') : 'never'}${mt.lastError ? `<br><span class="neg">Last error: ${esc(mt.lastError)}</span>` : ''}</p>
+    <div class="row"><button class="b primary">Save &amp; sync now</button></div>
+  </form>
+  <form id="fSettings" class="card">
+    <h2>Defaults</h2>
+    <div class="grid2">
+      <label>Pressure unit<select name="unit">${['psi', 'bar'].map(u => `<option ${st.unit === u ? 'selected' : ''}>${u}</option>`).join('')}</select></label>
+      <label>Full manifold cylinder<input name="fullPressure" type="number" value="${esc(st.fullPressure)}"></label>
+      <label>Low warning below<input name="lowPressure" type="number" value="${esc(st.lowPressure)}"></label>
+      <label>Default fill charge (£)<input name="defaultCharge" type="number" step="0.01" value="${esc(st.defaultCharge)}"></label>
+      <label>Default refill cost (£)<input name="defaultRefillCost" type="number" step="0.01" value="${esc(st.defaultRefillCost)}"></label>
+      <label>Default service charge (£)<input name="defaultServiceCharge" type="number" step="0.01" value="${esc(st.defaultServiceCharge)}"></label>
+      <label>Test interval (years)<input name="testIntervalYears" type="number" value="${esc(st.testIntervalYears)}"></label>
+    </div>
+    <h3>Mileage allowance</h3>
+    <div class="grid3">
+      <label>Rate (£/mile)<input name="mileageRate" type="number" step="0.01" value="${esc(st.mileageRate)}"></label>
+      <label>Up to (miles)<input name="mileageThreshold" type="number" value="${esc(st.mileageThreshold)}"></label>
+      <label>Then (£/mile)<input name="mileageRateHigh" type="number" step="0.01" value="${esc(st.mileageRateHigh)}"></label>
+    </div>
+    <p class="muted small" style="margin:0 0 12px">HMRC 2026/27: 55p a mile for the first 10,000 business miles in the tax year, then 25p.</p>
+    <label>Customer cylinder sizes (one per line)<textarea name="sizes" rows="5">${esc(st.sizes.join('\n'))}</textarea></label>
+    <button class="b primary">Save defaults</button>
+  </form>
+  <div class="card"><h2>Backup file</h2>
+    <p class="muted small" style="margin-top:0">Download everything as a file, or restore from one.</p>
+    <div class="row"><button class="b" data-act="exportJson">Download backup</button>
+      <label class="b" style="margin:0;color:var(--ink);cursor:pointer">Restore from file<input type="file" id="importFile" accept=".json,application/json" style="display:none"></label></div>
+  </div>`;
+}
+
+/* ================= actions ================= */
+document.addEventListener('click', async ev => {
+  const el = ev.target.closest('[data-act]'); if (!el) return;
+  const a = el.dataset.act, id = el.dataset.id;
+  if (a === 'cancel') { S.edit = null; S.swapPos = null; render(); }
+  else if (a === 'delete') {
+    if (!confirm('Delete this record?')) return;
+    await remove(id); S.edit = null; S.swapPos = null; toast('Deleted'); render();
+  }
+  else if (a === 'editFill') { S.edit = {kind:'fill', id}; S.tab = 'fill'; render(); scrollTo(0, 0); }
+  else if (a === 'editSwap') { S.edit = {kind:'swap', id}; S.swapPos = null; render(); scrollTo(0, 0); }
+  else if (a === 'swap') { S.edit = null; S.swapPos = +el.dataset.pos; render(); $('#fSwap')?.scrollIntoView({behavior:'smooth'}); }
+  else if (a === 'editLedger') {
+    const k = el.dataset.kind; S.edit = {kind:k, id};
+    S.tab = k === 'fill' ? 'fill' : k === 'swap' ? 'manifold' : k === 'service' ? 'service' : 'accounts'; render(); scrollTo(0, 0);
+  }
+  else if (a === 'editService') { S.edit = {kind:'service', id}; S.tab = 'service'; render(); scrollTo(0, 0); }
+  else if (a === 'csv') exportCsv();
+  else if (a === 'csvService') exportServiceCsv();
+  else if (a === 'exportJson') exportJson();
+});
+document.addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const f = ev.target, v = n => f[n]?.value?.trim() ?? '';
+  if (f.id === 'fFill') {
+    const st = settings(), m = manifold(), man = {};
+    [1,2,3].forEach(p => { if (f['m' + p]) man[p] = num(v('m' + p)); });
+    const editing = S.edit?.kind === 'fill' ? S.edit.id : null;
+    const dup = live('fill').find(x => +x.no === +v('no') && x.id !== editing);
+    if (dup && !confirm(`Fill #${v('no')} already exists. Save anyway?`)) return;
+    await save('fill', { no: num(v('no')), date: v('date'), customer: v('customer'), phone: v('phone'), size: v('size'),
+      startP: num(v('startP')), finalP: num(v('finalP')), charge: num(v('charge')), manifold: man, notes: v('notes') }, editing);
+    S.edit = null; toast(editing ? 'Fill updated' : 'Fill saved'); render(); scrollTo(0, 0);
+  }
+  else if (f.id === 'fSwap') {
+    const editing = S.edit?.kind === 'swap' ? S.edit.id : null;
+    await save('swap', { position: +v('position'), date: v('date'), empty: f.empty.checked, serial: v('serial'),
+      pressure: num(v('pressure')), cost: num(v('cost')), notes: v('notes') }, editing);
+    S.edit = null; S.swapPos = null; toast('Cylinder change saved'); render();
+  }
+  else if (f.id === 'fService') {
+    const editing = S.edit?.kind === 'service' ? S.edit.id : null;
+    await save('service', { date: v('date'), status: v('status'), customer: v('customer'), phone: v('phone'), size: v('size'),
+      serial: v('serial'), work: v('work'), certDate: v('certDate'), nextDue: v('nextDue'), charge: num(v('charge')),
+      miles: num(v('miles')), tolls: num(v('tolls')), otherCost: num(v('otherCost')), otherDesc: v('otherDesc'), notes: v('notes') }, editing);
+    S.edit = null; toast(editing ? 'Service job updated' : 'Service job saved'); render(); scrollTo(0, 0);
+  }
+  else if (f.id === 'fEntry') {
+    const editing = S.edit?.kind === 'entry' ? S.edit.id : null;
+    await save('entry', { type: v('type'), date: v('date'), desc: v('desc'), amount: num(v('amount')) }, editing);
+    S.edit = null; toast('Saved'); render();
+  }
+  else if (f.id === 'fSettings') {
+    await save('settings', { unit: v('unit'), fullPressure: num(v('fullPressure')) || 2200, lowPressure: num(v('lowPressure')) || 0,
+      defaultCharge: num(v('defaultCharge')), defaultRefillCost: num(v('defaultRefillCost')),
+      defaultServiceCharge: num(v('defaultServiceCharge')), testIntervalYears: num(v('testIntervalYears')) || 5,
+      mileageRate: num(v('mileageRate')) ?? 0.55, mileageRateHigh: num(v('mileageRateHigh')) ?? 0.25,
+      mileageThreshold: num(v('mileageThreshold')) ?? 10000,
+      sizes: v('sizes').split('\n').map(s => s.trim()).filter(Boolean) }, 'settings');
+    toast('Defaults saved'); render();
+  }
+  else if (f.id === 'fSync') {
+    S.meta.syncUrl = v('url'); S.meta.token = v('token');
+    await IDB.setMeta('syncUrl', S.meta.syncUrl); await IDB.setMeta('token', S.meta.token);
+    S.meta.lastPull = 0; await IDB.setMeta('lastPull', 0);
+    await sync(true); render();
+  }
+});
+document.addEventListener('input', ev => {
+  if (ev.target.id === 'search' || ev.target.id === 'ssearch') {
+    const id = ev.target.id; S[id === 'search' ? 'q' : 'sq'] = ev.target.value; const pos = ev.target.selectionStart;
+    render(); const s = $('#' + id); s.focus(); s.setSelectionRange(pos, pos);
+  }
+});
+document.addEventListener('change', async ev => {
+  if (ev.target.name === 'type' && ev.target.form?.id === 'fEntry') $('#amtLbl').textContent = ev.target.value === 'mileage' ? 'Miles' : 'Amount (£)';
+  if (ev.target.id === 'importFile') {
+    const file = ev.target.files[0]; if (!file) return;
+    try {
+      const j = JSON.parse(await file.text()); const recs = j.records || [];
+      if (!confirm(`Restore ${recs.length} records? Newer records on this device are kept.`)) return;
+      let n = 0;
+      for (const r of recs) { const cur = S.recs.get(r.id); if (!cur || r.updated_at > cur.updated_at) { const x = {...r, dirty: 1}; S.recs.set(x.id, x); n++; } }
+      await IDB.putMany([...S.recs.values()]); toast(`Restored ${n} records`); scheduleSync(); render();
+    } catch (e) { alert('Could not read that file: ' + e.message); }
+  }
+});
+$('#nav').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.tab = b.dataset.tab; S.edit = null; S.swapPos = null; render(); scrollTo(0, 0); });
+$('#yearSel').addEventListener('change', e => { S.year = +e.target.value; render(); });
+$('#syncPill').addEventListener('click', () => { if (!S.meta.token) { S.tab = 'settings'; render(); } else sync(true); });
+
+function download(name, text, type){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function exportCsv(){
+  const st = settings(), q = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
+  const rows = [['Fill no', 'Date', 'Customer', 'Contact', 'Cylinder size', `Start (${st.unit})`, `Final (${st.unit})`,
+    `Manifold 1 (${st.unit})`, `Manifold 2 (${st.unit})`, `Manifold 3 (${st.unit})`, 'Charge (£)', 'Notes']];
+  live('fill').filter(f => inYear(f, S.year)).sort(ord).forEach(f => rows.push([f.no, f.date, f.customer, f.phone, f.size, f.startP, f.finalP,
+    f.manifold?.[1], f.manifold?.[2], f.manifold?.[3], f.charge, f.notes]));
+  download(`oxyservice-fills-${tyLabel(S.year).replace('/', '-')}.csv`, rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+}
+function exportServiceCsv(){
+  const q = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
+  const rows = [['Date in', 'Status', 'Customer', 'Contact', 'Cylinder size', 'Serial', 'Work', 'Certified on', 'Next test due',
+    'Charge (£)', 'Miles', 'Tolls (£)', 'Other cost (£)', 'Other cost for', 'Notes']];
+  live('service').filter(s => inYear(s, S.year)).sort(ord).forEach(s => rows.push([s.date, SERVICE_STATUS[s.status] || '', s.customer, s.phone,
+    s.size, s.serial, s.work, s.certDate, s.nextDue, s.charge, s.miles, s.tolls, s.otherCost, s.otherDesc, s.notes]));
+  download(`oxyservice-service-${tyLabel(S.year).replace('/', '-')}.csv`, rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+}
+function exportJson(){
+  const records = [...S.recs.values()].map(({dirty, ...r}) => r);
+  download(`oxyservice-backup-${localToday()}.json`, JSON.stringify({app: 'oxyservice', exported: new Date().toISOString(), records}, null, 1), 'application/json');
+}
+
+/* ================= sync with Cloudflare ================= */
+let syncing = false, syncTimer = null;
+function scheduleSync(ms = 1500){ clearTimeout(syncTimer); syncTimer = setTimeout(() => sync(false), ms); setPill(); }
+function setPill(state){
+  const p = $('#syncPill'), pending = [...S.recs.values()].filter(r => r.dirty).length;
+  p.classList.remove('err');
+  if (!S.meta.token) { p.textContent = 'Local only'; return; }
+  if (state === 'syncing') p.textContent = 'Syncing…';
+  else if (!navigator.onLine) p.textContent = pending ? `Offline · ${pending} to sync` : 'Offline';
+  else if (S.meta.lastError) { p.textContent = 'Sync error'; p.classList.add('err'); }
+  else p.textContent = pending ? `${pending} to sync` : 'Synced ✓';
+}
+async function sync(manual){
+  if (syncing || !S.meta.token) { setPill(); return; }
+  if (!navigator.onLine) { setPill(); if (manual) toast('Offline — will sync when back online'); return; }
+  syncing = true; setPill('syncing');
+  try {
+    const base = (S.meta.syncUrl || '').replace(/\/+$/, '');
+    const url = base ? (base.endsWith('/api/sync') ? base : base + '/api/sync') : 'api/sync';
+    const dirty = [...S.recs.values()].filter(r => r.dirty).map(({dirty, ...r}) => r);
+    const since = Math.max(0, (S.meta.lastPull || 0) - 60000); // overlap window; applying is idempotent
+    const res = await fetch(url, { method: 'POST', headers: {'content-type': 'application/json', authorization: 'Bearer ' + S.meta.token},
+      body: JSON.stringify({ since, changes: dirty }) });
+    if (!res.ok) throw new Error(res.status === 401 ? 'Sync key not accepted' : `Server replied ${res.status}`);
+    const out = await res.json();
+    const changed = [];
+    for (const r of dirty) { const cur = S.recs.get(r.id); if (cur && cur.updated_at === r.updated_at) { cur.dirty = 0; changed.push(cur); } }
+    let pulled = 0;
+    for (const r of out.changes || []) {
+      const cur = S.recs.get(r.id);
+      if (!cur || r.updated_at > cur.updated_at) { const x = {...r, dirty: 0}; S.recs.set(x.id, x); changed.push(x); pulled++; }
+    }
+    if (changed.length) await IDB.putMany(changed);
+    S.meta.lastPull = out.serverTime; S.meta.lastSync = Date.now(); S.meta.lastError = '';
+    await IDB.setMeta('lastPull', out.serverTime); await IDB.setMeta('lastSync', S.meta.lastSync); await IDB.setMeta('lastError', '');
+    if (manual) toast('Synced with cloud backup');
+    if (pulled && !document.querySelector('main form:focus-within')) render();
+  } catch (e) {
+    S.meta.lastError = e.message || String(e); await IDB.setMeta('lastError', S.meta.lastError);
+    if (manual) toast('Sync failed: ' + S.meta.lastError);
+  } finally { syncing = false; setPill(); if (S.tab === 'settings' && manual) render(); }
+}
+addEventListener('online', () => sync(false));
+addEventListener('offline', () => setPill());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(false); });
+setInterval(() => sync(false), 5 * 60 * 1000);
+
+/* ================= initial data (from oxygen_service.xlsx, tax year 2026/27) ================= */
+// Fixed ids + updated_at=1 so seeding on several devices never duplicates, and any real edit wins.
+const SEED = [
+  { id: 'seed-swap-1', kind: 'swap', data: { position: 1, date: '2026-05-15', serial: '', pressure: null, cost: 46.86, notes: 'From spreadsheet', created: 1 } },
+  { id: 'seed-rental-2026', kind: 'entry', data: { type: 'rental', date: '2026-05-15', desc: 'Manifold cylinder rental', amount: 353, created: 2 } },
+  { id: 'seed-income-est', kind: 'entry', data: { type: 'income', date: '2026-10-31', desc: "Fills #1–10, year's estimate to date", amount: 250, created: 3 } },
+  { id: 'seed-fill-11', kind: 'fill', data: { no: 11, date: '2026-11-01', customer: '', phone: '', size: '', startP: null, finalP: null, charge: 25, manifold: {}, notes: 'From spreadsheet', created: 4 } },
+  { id: 'seed-fill-12', kind: 'fill', data: { no: 12, date: '2026-11-01', customer: '', phone: '', size: '', startP: null, finalP: null, charge: 25, manifold: {}, notes: 'From spreadsheet', created: 5 } },
+  { id: 'seed-fill-13', kind: 'fill', data: { no: 13, date: '2026-11-03', customer: '', phone: '', size: '', startP: null, finalP: null, charge: 25, manifold: {1: 1800}, notes: 'From spreadsheet', created: 6 } },
+  { id: 'seed-swap-2', kind: 'swap', data: { position: 2, date: '2026-11-03', serial: '', pressure: null, cost: null, notes: 'From spreadsheet – refill cost not recorded', created: 7 } },
+];
+
+/* ================= boot ================= */
+(async function boot(){
+  await IDB.open();
+  for (const k of ['syncUrl', 'token', 'lastPull', 'lastSync', 'lastError', 'seeded']) S.meta[k] = await IDB.getMeta(k);
+  (await IDB.all()).forEach(r => S.recs.set(r.id, r));
+  if (!S.meta.seeded) {
+    const fresh = SEED.filter(s => !S.recs.has(s.id)).map(s => ({...s, updated_at: 1, deleted: 0, dirty: 1}));
+    fresh.forEach(r => S.recs.set(r.id, r)); if (fresh.length) await IDB.putMany(fresh);
+    await IDB.setMeta('seeded', true); S.meta.seeded = true;
+  }
+  render(); setPill();
+  if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  sync(false);
+})();
+</script>
+</body>
+</html>
