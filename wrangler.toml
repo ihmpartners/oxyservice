@@ -5,4 +5,4 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "oxyservice"
-database_id = "PASTE-YOUR-DATABASE-ID-HERE"
+database_id = "d52ba450-5308-4fa7-a1ee-1c5d521ad205"

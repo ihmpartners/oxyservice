@@ -9,10 +9,16 @@ An offline-first app for logging oxygen transfills from a manifold of up to thre
 | **Fill** | Fill no. (auto-numbered), date, customer, contact number, cylinder size, start pressure, final fill pressure, charge, and the pressure of each manifold cylinder after the fill. Past customers autocomplete and fill in their phone number. |
 | **Manifold** | Live gauge for cylinders 1–3. **Swap** records the replacement date, cylinder ID, pressure when fitted and the refill cost. "Remove only" leaves a position empty. |
 | **Service** | A cylinder taken in for service or certification: date in, status (in / ready / returned), customer and contact number, size, serial no., work done, test date and next-test-due date, which fills itself in 5 years after the test date. Records the charge to the customer and your costs for the job: miles, tolls, and any other cost. Shows what's in the workshop, a **Certifications due** list (overdue in red, due within 60 days in amber), and completed jobs with CSV export. |
+<<<<<<< HEAD
 | **Hire** | Hire of the oxygen systems: three single-place (Single 1–3) and one two-place. Each hire records the system, day / weekend / week (and how many), hire start and finish dates, customer, contact number, charge and status (booked / on hire / returned). The charge is worked out from the hire prices (single £20 day, £50 weekend, £110 week; two-place £35, £75, £185, all changeable in Settings) and can be overridden. Shows each system's availability, warns about double bookings and overdue returns, and lists returned hires with CSV export. Hire income goes into Accounts. |
 | **Log** | Every fill in the selected tax year, searchable, with CSV export. |
 | **Accounts** | Totals for the tax year: fill returns, service returns, hire returns, refill costs, rentals, tolls and other costs, and mileage allowance. Net is shown both after and before the mileage allowance, with a running-totals ledger underneath. Add the annual cylinder rental, other costs or income, and mileage for trips that aren't service jobs here. Mileage is valued at 55p a mile for the first 10,000 business miles in the tax year, then 25p (HMRC 2026/27 rates, which you can change in Settings). |
 | **Settings** | Sync key, pressure unit (psi or bar), default charge and refill cost, hire prices, the list of cylinder sizes, and backup download and restore. |
+=======
+| **Log** | Every fill in the selected tax year, searchable, with CSV export. |
+| **Accounts** | Totals for the tax year: fill returns, service returns, refill costs, rentals, tolls and other costs, and mileage allowance. Net is shown both after and before the mileage allowance, with a running-totals ledger underneath. Add the annual cylinder rental, other costs or income, and mileage for trips that aren't service jobs here. Mileage is valued at 55p a mile for the first 10,000 business miles in the tax year, then 25p (HMRC 2026/27 rates, which you can change in Settings). |
+| **Settings** | Sync key, pressure unit (psi or bar), default charge and refill cost, the list of cylinder sizes, and backup download and restore. |
+>>>>>>> 9a9832b (Initial commit)
 
 Pick the tax year from the menu at the top. Tap any entry to edit or delete it.
 
@@ -32,9 +38,15 @@ Paste the `database_id` into `wrangler.toml`, then run:
 ```bash
 npx wrangler d1 execute oxyservice --remote --file schema.sql
 npx wrangler pages project create oxyservice --production-branch main
+<<<<<<< HEAD
 npx wrangler pages deploy --branch main
 npx wrangler pages secret put SYNC_TOKEN --project-name oxyservice   # choose a long random key
 npx wrangler pages deploy --branch main     # deploy again so the key is applied
+=======
+npx wrangler pages deploy
+npx wrangler pages secret put SYNC_TOKEN --project-name oxyservice   # choose a long random key
+npx wrangler pages deploy                   # deploy again so the key is applied
+>>>>>>> 9a9832b (Initial commit)
 ```
 
 Next, open the `https://oxyservice.pages.dev` address it prints:
@@ -43,6 +55,7 @@ Next, open the `https://oxyservice.pages.dev` address it prints:
 2. On your phone, use **Add to Home Screen**. In Chrome on Android, use **Install app**. From then on it opens like an app and works offline.
 3. Do the same on any other device using the same key, and they will share data.
 
+<<<<<<< HEAD
 **Updating the app later:** from this folder run
 
 ```bash
@@ -65,6 +78,9 @@ The error is shown in a pop-up when you tap **Save & sync now**, and under **Las
 | *No sync service found* | Only the `public` folder was uploaded, so the sync code wasn't. Deploy with `npx wrangler pages deploy --branch main` from the project folder, not by drag-and-drop. |
 
 To check the server directly: `curl -H "Authorization: Bearer YOUR-KEY" https://oxyservice.pages.dev/api/sync` should reply `{"ok":true,...}`.
+=======
+**Updating the app later:** change `VERSION` in `public/sw.js`, then run `npx wrangler pages deploy`.
+>>>>>>> 9a9832b (Initial commit)
 
 ## How the backup works
 
