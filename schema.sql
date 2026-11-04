@@ -1,7 +1,7 @@
 -- OxyService backup database (Cloudflare D1)
 -- Every record from the app is stored as one row; `data` is JSON.
---   kind = 'fill'     : no, date, customer, phone, size, startP, finalP, charge, manifold{1,2,3}, notes
---   kind = 'swap'     : position, date, serial, pressure, cost (refill cost), empty, notes
+--   kind = 'fill'     : no, date, customer, phone, size, startP, finalP, charge, miles, manifold{1,2,3}, notes
+--   kind = 'swap'     : position, date, serial, pressure, cost (refill cost), miles, tolls, empty, notes
 --   kind = 'service'  : date, status (in | ready | returned), customer, phone, size, serial, work, certDate, nextDue,
 --                       charge, miles, tolls, otherCost, otherDesc, notes
 --   kind = 'hire'     : system (S1 | S2 | S3 single place, T1 two place), status (booked | out | returned),
@@ -20,18 +20,21 @@ CREATE INDEX IF NOT EXISTS records_server_ts ON records (server_ts);
 CREATE INDEX IF NOT EXISTS records_kind ON records (kind);
 
 -- Handy read-only views for looking at the backup in the Cloudflare dashboard
-CREATE VIEW IF NOT EXISTS fills AS
+DROP VIEW IF EXISTS fills;
+CREATE VIEW fills AS
   SELECT json_extract(data,'$.no') AS fill_no, json_extract(data,'$.date') AS date,
          json_extract(data,'$.customer') AS customer, json_extract(data,'$.phone') AS phone,
          json_extract(data,'$.size') AS size, json_extract(data,'$.startP') AS start_pressure,
          json_extract(data,'$.finalP') AS final_pressure, json_extract(data,'$.charge') AS charge,
          json_extract(data,'$.manifold."1"') AS manifold_1, json_extract(data,'$.manifold."2"') AS manifold_2,
-         json_extract(data,'$.manifold."3"') AS manifold_3, json_extract(data,'$.notes') AS notes
+         json_extract(data,'$.manifold."3"') AS manifold_3, json_extract(data,'$.miles') AS miles, json_extract(data,'$.notes') AS notes
   FROM records WHERE kind = 'fill' AND deleted = 0;
-CREATE VIEW IF NOT EXISTS cylinder_changes AS
+DROP VIEW IF EXISTS cylinder_changes;
+CREATE VIEW cylinder_changes AS
   SELECT json_extract(data,'$.position') AS position, json_extract(data,'$.date') AS date,
          json_extract(data,'$.serial') AS serial, json_extract(data,'$.pressure') AS pressure,
-         json_extract(data,'$.cost') AS refill_cost, json_extract(data,'$.empty') AS removed_only
+         json_extract(data,'$.cost') AS refill_cost, json_extract(data,'$.miles') AS miles, json_extract(data,'$.tolls') AS tolls,
+         json_extract(data,'$.empty') AS removed_only
   FROM records WHERE kind = 'swap' AND deleted = 0;
 CREATE VIEW IF NOT EXISTS service_jobs AS
   SELECT json_extract(data,'$.date') AS date_in, json_extract(data,'$.status') AS status,

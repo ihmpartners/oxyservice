@@ -249,8 +249,14 @@ function ledger(y){
   const rows = [];
   live('fill').filter(f => inYear(f, y)).forEach(f => rows.push({ date: f.date, created: f.created, id: f.id, kind: 'fill',
     desc: `Fill #${f.no ?? '?'}${f.customer ? ' – ' + f.customer : ''}`, inc: num(f.charge) || 0, cost: 0 }));
-  live('swap').filter(s => inYear(s, y) && num(s.cost)).forEach(s => rows.push({ date: s.date, created: s.created, id: s.id, kind: 'swap',
-    desc: `Cylinder ${s.position} refill${s.serial ? ' (' + s.serial + ')' : ''}`, inc: 0, cost: num(s.cost) }));
+  live('fill').filter(f => inYear(f, y) && num(f.miles)).forEach(f => rows.push({ date: f.date, created: (f.created || 0) + .3, id: f.id, kind: 'fill',
+    cat: 'mileage', miles: num(f.miles), desc: `Mileage – fill #${f.no ?? '?'}${f.customer ? ' ' + f.customer : ''}`, inc: 0, cost: 0 }));
+  live('swap').filter(s => inYear(s, y)).forEach(s => {
+    const base = { date: s.date, created: s.created, id: s.id, kind: 'swap' }, what = `cylinder ${s.position} refill`;
+    if (num(s.cost)) rows.push({ ...base, desc: `Cylinder ${s.position} refill${s.serial ? ' (' + s.serial + ')' : ''}`, inc: 0, cost: num(s.cost) });
+    if (num(s.tolls)) rows.push({ ...base, created: (s.created || 0) + .1, cat: 'tolls', desc: `Tolls – ${what}`, inc: 0, cost: num(s.tolls) });
+    if (num(s.miles)) rows.push({ ...base, created: (s.created || 0) + .3, cat: 'mileage', miles: num(s.miles), desc: `Mileage – ${what}`, inc: 0, cost: 0 });
+  });
   live('entry').filter(e => inYear(e, y)).forEach(e => {
     if (e.type === 'mileage') { rows.push({ date: e.date, created: e.created, id: e.id, kind: 'entry', cat: 'mileage', miles: num(e.amount) || 0,
       desc: 'Business mileage' + (e.desc ? ' – ' + e.desc : ''), inc: 0, cost: 0 }); return; }
@@ -289,7 +295,9 @@ function totals(y){
               miles: 0, mileage: 0, fills: 0, services: 0, refillCount: 0, hireReturns: 0, hires: 0, trips: 0 };
   L.forEach(r => {
     t.returns += r.inc;
-    if (r.kind === 'fill') { t.fillReturns += r.inc; t.fills++; }
+    if (r.cat === 'mileage') { t.miles += r.miles; t.mileage += r.claim; t.trips++; }
+    else if (r.cat === 'tolls') t.tolls += r.cost;
+    else if (r.kind === 'fill') { t.fillReturns += r.inc; t.fills++; }
     else if (r.kind === 'swap') { t.refills += r.cost; t.refillCount++; }
     else if (r.cat === 'service') { t.serviceReturns += r.inc; t.services++; }
     else if (r.cat === 'hire') { t.hireReturns += r.inc; t.hires++; }
@@ -323,6 +331,7 @@ function render(){
   $('#view').innerHTML = ({ fill: vFill, manifold: vManifold, service: vService, hire: vHire, log: vLog, accounts: vAccounts, settings: vSettings })[S.tab]();
   if (S.tab === 'fill') wireFill();
   if (S.tab === 'service') wireService();
+  if (S.tab === 'manifold' && $('#fSwap')) wireMileHint($('#fSwap'));
   if (S.tab === 'hire') wireHire();
 }
 
@@ -528,6 +537,7 @@ function fillRow(f, st){
     <div class="main"><div class="t">#${esc(f.no ?? '?')} ${esc(f.customer || 'No customer recorded')}</div>
     <div class="s">${fmtDate(f.date)}${f.size ? ' · ' + esc(f.size) : ''}${num(f.startP) != null || num(f.finalP) != null ? ` · ${esc(f.startP ?? '?')} → ${esc(f.finalP ?? '?')} ${st.unit}` : ''}</div>
     ${m ? `<div class="s">Manifold after: ${esc(m)}</div>` : ''}
+    ${num(f.miles) ? `<div class="s">${f.miles} mi</div>` : ''}
     ${f.phone ? `<div class="s"><a href="tel:${esc(f.phone.replace(/\s/g, ''))}" onclick="event.stopPropagation()">${esc(f.phone)}</a></div>` : ''}</div>
     <div class="amt pos">${num(f.charge) != null ? money(f.charge) : ''}</div></li>`;
 }
@@ -551,7 +561,11 @@ function vFill(){
       <label>Final fill pressure (${st.unit})<input name="finalP" type="number" inputmode="numeric" value="${esc(d.finalP)}"></label>
     </div>
     <div class="warn" id="pWarn"></div>
-    <label>Charge (£)<input name="charge" type="number" step="0.01" inputmode="decimal" value="${esc(d.charge ?? st.defaultCharge)}"></label>
+    <div class="grid2">
+      <label>Charge (£)<input name="charge" type="number" step="0.01" inputmode="decimal" value="${esc(d.charge ?? st.defaultCharge)}"></label>
+      <label>Mileage (miles)<input name="miles" type="number" step="0.1" inputmode="decimal" value="${esc(d.miles)}" placeholder="if you travelled"></label>
+    </div>
+    <p class="muted small mileHint" style="margin:-4px 0 10px"></p>
     <fieldset><legend>Manifold pressures after fill (${st.unit})</legend>
       ${active.length ? `<div class="grid3">${active.map(p => `<label>Cyl ${p}${m[p]?.serial ? ' · ' + esc(m[p].serial) : ''}
           <input name="m${p}" type="number" inputmode="numeric" value="${esc(d.manifold?.[p] ?? '')}"
@@ -574,6 +588,14 @@ function wireFill(){
   const chk = () => { const a = num(f.startP.value), b = num(f.finalP.value);
     $('#pWarn').textContent = a != null && b != null && b < a ? 'Final pressure is lower than start pressure.' : ''; };
   f.startP.addEventListener('input', chk); f.finalP.addEventListener('input', chk);
+  wireMileHint(f);
+}
+// Shows the mileage claim value under any form with a "miles" field and a .mileHint paragraph.
+function wireMileHint(f){
+  const st = settings(), el = f.querySelector('.mileHint'); if (!el || !f.miles) return;
+  const hint = () => { const mi = num(f.miles.value);
+    el.textContent = mi ? `${mi} miles ≈ ${money(mi * st.mileageRate)} mileage claim at ${Math.round(st.mileageRate * 100)}p/mile, shown under Tax claim in Accounts.` : ''; };
+  f.miles.addEventListener('input', hint); hint();
 }
 
 function vManifold(){
@@ -607,6 +629,13 @@ function vManifold(){
       <label>Pressure when fitted (${st.unit})<input name="pressure" type="number" inputmode="numeric" value="${esc(d.pressure)}"></label>
       <label>Refill cost (£)<input name="cost" type="number" step="0.01" inputmode="decimal" value="${esc(d.cost)}"></label>
     </div>
+    <fieldset><legend>Travel for this refill</legend>
+      <div class="grid2">
+        <label>Mileage (miles)<input name="miles" type="number" step="0.1" inputmode="decimal" value="${esc(d.miles)}"></label>
+        <label>Tolls (£)<input name="tolls" type="number" step="0.01" inputmode="decimal" value="${esc(d.tolls)}"></label>
+      </div>
+      <p class="muted small mileHint" style="margin:0 0 10px"></p>
+    </fieldset>
     <label>Notes<textarea name="notes" rows="2">${esc(d.notes)}</textarea></label>
     <div class="row"><button class="b primary">Save</button><button type="button" class="b" data-act="cancel">Cancel</button>
       ${sw ? `<button type="button" class="b danger" data-act="delete" data-id="${sw.id}">Delete</button>` : ''}</div>
@@ -614,7 +643,8 @@ function vManifold(){
   <div class="card"><h2>Cylinder changes</h2>
     ${hist.length ? `<ul class="list">${hist.map(s => `<li data-act="editSwap" data-id="${s.id}"><div class="main">
       <div class="t">Cylinder ${s.position} ${s.empty ? 'removed' : 'replaced'}${s.serial ? ' · ' + esc(s.serial) : ''}</div>
-      <div class="s">${fmtDate(s.date)}${num(s.pressure) != null && !s.empty ? ` · fitted at ${s.pressure} ${st.unit}` : ''}${s.notes ? ' · ' + esc(s.notes) : ''}</div></div>
+      <div class="s">${fmtDate(s.date)}${num(s.pressure) != null && !s.empty ? ` · fitted at ${s.pressure} ${st.unit}` : ''}${s.notes ? ' · ' + esc(s.notes) : ''}</div>
+      ${num(s.miles) || num(s.tolls) ? `<div class="s">${[num(s.miles) ? s.miles + ' mi' : '', num(s.tolls) ? 'tolls ' + money(s.tolls) : ''].filter(Boolean).join(' · ')}</div>` : ''}</div>
       <div class="amt neg">${num(s.cost) != null ? money(-s.cost) : '<span class="muted small">no cost</span>'}</div></li>`).join('')}</ul>`
       : '<p class="empty-note">No cylinder changes recorded.</p>'}
   </div>`;
@@ -667,7 +697,7 @@ function vAccounts(){
   </div>
   <form id="fEntry" class="card">
     <h2>${en ? 'Edit entry' : 'Add rental, cost, mileage or income'}</h2>
-    <p class="muted small" style="margin-top:-6px">Mileage and tolls for service jobs are entered on the job itself. Use this for other trips, such as collecting manifold refills.</p>
+    <p class="muted small" style="margin-top:-6px">Mileage is entered on each fill, manifold refill and service job. Use this for any other business trips.</p>
     <div class="grid2">
       <label>Type<select name="type">${Object.entries(ENTRY_TYPES).map(([k, v]) => `<option value="${k}" ${d.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
       <label>Date<input name="date" type="date" required value="${esc(d.date)}"></label>
@@ -770,13 +800,13 @@ document.addEventListener('submit', async ev => {
     const dup = live('fill').find(x => +x.no === +v('no') && x.id !== editing);
     if (dup && !confirm(`Fill #${v('no')} already exists. Save anyway?`)) return;
     await save('fill', { no: num(v('no')), date: v('date'), customer: v('customer'), phone: v('phone'), size: v('size'),
-      startP: num(v('startP')), finalP: num(v('finalP')), charge: num(v('charge')), manifold: man, notes: v('notes') }, editing);
+      startP: num(v('startP')), finalP: num(v('finalP')), charge: num(v('charge')), miles: num(v('miles')), manifold: man, notes: v('notes') }, editing);
     S.edit = null; toast(editing ? 'Fill updated' : 'Fill saved'); render(); scrollTo(0, 0);
   }
   else if (f.id === 'fSwap') {
     const editing = S.edit?.kind === 'swap' ? S.edit.id : null;
     await save('swap', { position: +v('position'), date: v('date'), empty: f.empty.checked, serial: v('serial'),
-      pressure: num(v('pressure')), cost: num(v('cost')), notes: v('notes') }, editing);
+      pressure: num(v('pressure')), cost: num(v('cost')), miles: num(v('miles')), tolls: num(v('tolls')), notes: v('notes') }, editing);
     S.edit = null; S.swapPos = null; toast('Cylinder change saved'); render();
   }
   else if (f.id === 'fService') {
@@ -847,9 +877,9 @@ function download(name, text, type){
 function exportCsv(){
   const st = settings(), q = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
   const rows = [['Fill no', 'Date', 'Customer', 'Contact', 'Cylinder size', `Start (${st.unit})`, `Final (${st.unit})`,
-    `Manifold 1 (${st.unit})`, `Manifold 2 (${st.unit})`, `Manifold 3 (${st.unit})`, 'Charge (£)', 'Notes']];
+    `Manifold 1 (${st.unit})`, `Manifold 2 (${st.unit})`, `Manifold 3 (${st.unit})`, 'Charge (£)', 'Miles', 'Notes']];
   live('fill').filter(f => inYear(f, S.year)).sort(ord).forEach(f => rows.push([f.no, f.date, f.customer, f.phone, f.size, f.startP, f.finalP,
-    f.manifold?.[1], f.manifold?.[2], f.manifold?.[3], f.charge, f.notes]));
+    f.manifold?.[1], f.manifold?.[2], f.manifold?.[3], f.charge, f.miles, f.notes]));
   download(`oxyservice-fills-${tyLabel(S.year).replace('/', '-')}.csv`, rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
 }
 function exportServiceCsv(){
