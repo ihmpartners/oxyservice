@@ -139,6 +139,7 @@ h2 .chip{font-size:12px}
 
 <script>
 'use strict';
+const APP_VERSION = '2026-11-04 (hire)';
 /* ================= helpers ================= */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -711,7 +712,8 @@ function vSettings(){
     <p class="muted small" style="margin-top:0">Download everything as a file, or restore from one.</p>
     <div class="row"><button class="b" data-act="exportJson">Download backup</button>
       <label class="b" style="margin:0;color:var(--ink);cursor:pointer">Restore from file<input type="file" id="importFile" accept=".json,application/json" style="display:none"></label></div>
-  </div>`;
+  </div>
+  <p class="muted small" style="text-align:center">App version ${APP_VERSION} · ${esc(location.host || 'local file')}</p>`;
 }
 
 /* ================= actions ================= */
@@ -933,7 +935,12 @@ const SEED = [
   }
   render(); setPill();
   if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    const had = !!navigator.serviceWorker.controller; let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!had || reloaded || document.querySelector('main form:focus-within')) return; reloaded = true; location.reload(); });
+    navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).then(r => r.update()).catch(() => {});
+  }
   sync(false);
 })();
 </script>

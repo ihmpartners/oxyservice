@@ -32,9 +32,9 @@ Paste the `database_id` into `wrangler.toml`, then run:
 ```bash
 npx wrangler d1 execute oxyservice --remote --file schema.sql
 npx wrangler pages project create oxyservice --production-branch main
-npx wrangler pages deploy
+npx wrangler pages deploy --branch main
 npx wrangler pages secret put SYNC_TOKEN --project-name oxyservice   # choose a long random key
-npx wrangler pages deploy                   # deploy again so the key is applied
+npx wrangler pages deploy --branch main     # deploy again so the key is applied
 ```
 
 Next, open the `https://oxyservice.pages.dev` address it prints:
@@ -43,7 +43,14 @@ Next, open the `https://oxyservice.pages.dev` address it prints:
 2. On your phone, use **Add to Home Screen**. In Chrome on Android, use **Install app**. From then on it opens like an app and works offline.
 3. Do the same on any other device using the same key, and they will share data.
 
-**Updating the app later:** change `VERSION` in `public/sw.js`, then run `npx wrangler pages deploy`.
+**Updating the app later:** from this folder run
+
+```bash
+git pull
+npx wrangler pages deploy --branch main
+```
+
+Always include `--branch main`. Without it, wrangler names the deploy after your folder's git branch, and anything other than `main` becomes a *preview* at a new address each time (like `3f9a1c2e.oxyservice.pages.dev`), while `https://oxyservice.pages.dev` keeps the old version. Wrangler always prints a one-off address after deploying; ignore it and use `https://oxyservice.pages.dev`. Settings → bottom of the page shows the app version and the address it's running from.
 
 ## If sync doesn't work
 
@@ -51,11 +58,11 @@ The error is shown in a pop-up when you tap **Save & sync now**, and under **Las
 
 | Message | Fix |
 |---|---|
-| *SYNC_TOKEN secret is not set… or not redeployed* | Run `npx wrangler pages secret put SYNC_TOKEN --project-name oxyservice`, **then deploy again**. A secret only takes effect from the next deployment. If you set it in the dashboard, add it under **Production** (Settings → Variables and Secrets), then retry the latest deployment. |
+| *SYNC_TOKEN secret is not set… or not redeployed* | Run `npx wrangler pages secret put SYNC_TOKEN --project-name oxyservice`, **then deploy again** with `--branch main`. A secret only takes effect from the next deployment. If you set it in the dashboard, add it under **Production** (Settings → Variables and Secrets), then retry the latest deployment. |
 | *The sync key does not match* | The key typed in the app differs from the secret. Set the secret again to a simple key you can type exactly (letters and numbers only), redeploy, and enter it again. |
 | *D1 database is not connected* | Put the real `database_id` in `wrangler.toml` and deploy again. If the project is linked to GitHub, you can instead add a D1 binding named `DB` in the dashboard (Settings → Bindings). |
 | *Database tables have not been created* | Run `npx wrangler d1 execute oxyservice --remote --file schema.sql`. Don't forget `--remote`, or the tables are only created on your computer. |
-| *No sync service found* | Only the `public` folder was uploaded, so the sync code wasn't. Deploy with `npx wrangler pages deploy` from the project folder, not by drag-and-drop. |
+| *No sync service found* | Only the `public` folder was uploaded, so the sync code wasn't. Deploy with `npx wrangler pages deploy --branch main` from the project folder, not by drag-and-drop. |
 
 To check the server directly: `curl -H "Authorization: Bearer YOUR-KEY" https://oxyservice.pages.dev/api/sync` should reply `{"ok":true,...}`.
 
