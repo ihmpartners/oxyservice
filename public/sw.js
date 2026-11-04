@@ -1,5 +1,5 @@
 // Offline cache for the OxyService app shell. Bump VERSION when you change the app files.
-const VERSION = 'oxyservice-v6';
+const VERSION = 'oxyservice-v7';
 const SHELL = ['./', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

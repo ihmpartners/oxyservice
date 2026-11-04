@@ -116,7 +116,8 @@ h2 .chip{font-size:12px}
 @media (max-width:420px){nav button{font-size:11px;padding:10px 0 12px}}
 .empty-note{padding:18px 0;text-align:center;color:var(--muted)}
 @media (max-width:420px){.mani{gap:6px}.cyl{padding:10px 6px}.tile .v{font-size:19px}}
-@media (min-width:640px){.tiles{grid-template-columns:repeat(3,1fr)}}
+.tile.span2{grid-column:1/-1}
+@media (min-width:640px){.tiles{grid-template-columns:repeat(3,1fr)}.tile.span2{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -242,7 +243,7 @@ function years(){
   return [...ys].sort((a, b) => b - a);
 }
 const inYear = (r, y) => r.date && taxYearOf(r.date) === y;
-const ENTRY_TYPES = { rental: 'Cylinder rental', cost: 'Other cost / toll', income: 'Other income', mileage: 'Business mileage' };
+const ENTRY_TYPES = { rental: 'Cylinder rental', cost: 'Other cost / toll', income: 'Other income', mileage: 'Business mileage (tax claim)' };
 
 function ledger(y){
   const rows = [];
@@ -273,17 +274,19 @@ function ledger(y){
   rows.forEach(r => {
     if (r.cat !== 'mileage') return;
     const low = Math.max(0, Math.min(r.miles, st.mileageThreshold - miles));
-    r.cost = Math.round((low * st.mileageRate + (r.miles - low) * st.mileageRateHigh) * 100) / 100;
-    r.desc += ` · ${r.miles} mi`; miles += r.miles;
+    // Mileage is a tax claim, not money spent: it is kept out of costs and the running net.
+    r.claim = Math.round((low * st.mileageRate + (r.miles - low) * st.mileageRateHigh) * 100) / 100; r.cost = 0;
+    r.rate = r.miles ? r.claim / r.miles : st.mileageRate;
+    miles += r.miles; r.runMiles = miles;
   });
-  let ci = 0, cc = 0;
-  rows.forEach(r => { ci += r.inc; cc += r.cost; r.runInc = ci; r.runCost = cc; r.runNet = ci - cc; });
+  let ci = 0, cc = 0, cl = 0;
+  rows.forEach(r => { ci += r.inc; cc += r.cost; cl += r.claim || 0; r.runInc = ci; r.runCost = cc; r.runNet = ci - cc; r.runClaim = cl; });
   return rows;
 }
 function totals(y){
   const L = ledger(y);
   const t = { returns: 0, fillReturns: 0, serviceReturns: 0, otherReturns: 0, refills: 0, rentals: 0, other: 0, tolls: 0,
-              miles: 0, mileage: 0, fills: 0, services: 0, refillCount: 0, hireReturns: 0, hires: 0 };
+              miles: 0, mileage: 0, fills: 0, services: 0, refillCount: 0, hireReturns: 0, hires: 0, trips: 0 };
   L.forEach(r => {
     t.returns += r.inc;
     if (r.kind === 'fill') { t.fillReturns += r.inc; t.fills++; }
@@ -293,12 +296,12 @@ function totals(y){
     else if (r.cat === 'otherInc') t.otherReturns += r.inc;
     else if (r.cat === 'rental') t.rentals += r.cost;
     else if (r.cat === 'tolls') t.tolls += r.cost;
-    else if (r.cat === 'mileage') { t.miles += r.miles; t.mileage += r.cost; }
+    else if (r.cat === 'mileage') { t.miles += r.miles; t.mileage += r.claim; t.trips++; }
     else t.other += r.cost;
   });
   // swaps with no cost still count as cylinder changes
   t.swaps = live('swap').filter(s => inYear(s, y) && !s.empty).length;
-  t.costs = t.refills + t.rentals + t.other + t.tolls; t.cashNet = t.returns - t.costs; t.net = t.cashNet - t.mileage;
+  t.costs = t.refills + t.rentals + t.other + t.tolls; t.net = t.returns - t.costs; t.taxable = t.net - t.mileage;
   return t;
 }
 function certifications(){
@@ -408,7 +411,7 @@ function wireService(){
     if (f.certDate.value && !f.nextDue.value) { const [y, m, d] = f.certDate.value.split('-'); f.nextDue.value = `${+y + (+st.testIntervalYears || 5)}-${m}-${d}`; }
   });
   const hint = () => { const mi = num(f.miles.value);
-    $('#mileHint').textContent = mi ? `${mi} miles ≈ ${money(mi * st.mileageRate)} mileage allowance at ${Math.round(st.mileageRate * 100)}p/mile (counted against your returns in Accounts).` : `Mileage is claimed at ${Math.round(st.mileageRate * 100)}p/mile for the first ${st.mileageThreshold.toLocaleString('en-GB')} miles in the tax year, then ${Math.round(st.mileageRateHigh * 100)}p.`; };
+    $('#mileHint').textContent = mi ? `${mi} miles ≈ ${money(mi * st.mileageRate)} mileage allowance at ${Math.round(st.mileageRate * 100)}p/mile. Claimed against tax in Accounts, not counted as a running cost.` : `Mileage is claimed at ${Math.round(st.mileageRate * 100)}p/mile for the first ${st.mileageThreshold.toLocaleString('en-GB')} miles in the tax year, then ${Math.round(st.mileageRateHigh * 100)}p.`; };
   f.miles.addEventListener('input', hint); hint();
 }
 
@@ -632,7 +635,7 @@ function vLog(){
 }
 
 function vAccounts(){
-  const y = S.year, t = totals(y), L = ledger(y);
+  const y = S.year, t = totals(y), all = ledger(y), L = all.filter(r => r.cat !== 'mileage'), M = all.filter(r => r.cat === 'mileage');
   const en = S.edit?.kind === 'entry' ? getData(S.edit.id) : null;
   const d = en || { date: localToday(), type: 'rental' };
   return `<p class="muted small" style="margin:0 0 10px">Tax year ${tyLabel(y)} · ${tyRange(y)}</p>
@@ -643,12 +646,24 @@ function vAccounts(){
     <div class="tile"><div class="k">Refill costs</div><div class="v">${money(t.refills)}</div><div class="x">${t.refillCount} refills · ${t.swaps} swaps</div></div>
     <div class="tile"><div class="k">Rentals</div><div class="v">${money(t.rentals)}</div><div class="x">cylinder rental</div></div>
     <div class="tile"><div class="k">Tolls &amp; other</div><div class="v">${money(t.tolls + t.other)}</div><div class="x">tolls ${money(t.tolls)}</div></div>
-    <div class="tile"><div class="k">Mileage allowance</div><div class="v">${money(t.mileage)}</div><div class="x">${(+t.miles.toFixed(1)).toLocaleString('en-GB')} miles</div></div>
   </div>
-  <div class="tile" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-    <div><div class="k">Net for ${tyLabel(y)}</div><div class="v ${t.net < 0 ? 'neg' : 'pos'}" style="font-size:26px">${money(t.net)}</div>
-    <div class="x">returns ${money(t.returns)} − costs ${money(t.costs)} − mileage ${money(t.mileage)}</div></div>
-    <div class="x" style="text-align:right">Before mileage allowance<br><b style="font-size:15px;color:var(--ink)">${money(t.cashNet)}</b></div>
+  <div class="tile" style="margin-bottom:14px">
+    <div class="k">Operating net for ${tyLabel(y)}</div><div class="v ${t.net < 0 ? 'neg' : 'pos'}" style="font-size:26px">${money(t.net)}</div>
+    <div class="x">returns ${money(t.returns)} − costs ${money(t.costs)}</div>
+  </div>
+  <div class="card"><h2>Tax claim: business mileage</h2>
+    <p class="muted small" style="margin-top:-6px">Claimed against tax using the HMRC approved mileage rates. It isn't money spent, so it's not included in costs or the operating net.</p>
+    <div class="tiles" style="margin-bottom:10px">
+      <div class="tile"><div class="k">Business miles</div><div class="v">${(+t.miles.toFixed(1)).toLocaleString('en-GB')}</div><div class="x">${t.trips} trip${t.trips === 1 ? '' : 's'}</div></div>
+      <div class="tile"><div class="k">Mileage claim</div><div class="v">${money(t.mileage)}</div><div class="x">${Math.round(settings().mileageRate * 100)}p/mile, then ${Math.round(settings().mileageRateHigh * 100)}p</div></div>
+      <div class="tile span2"><div class="k">Profit after claim</div><div class="v ${t.taxable < 0 ? 'neg' : ''}">${money(t.taxable)}</div><div class="x">operating net − mileage claim</div></div>
+    </div>
+    ${M.length ? `<div class="tablewrap"><table><thead><tr><th>Trip</th><th>Miles</th><th class="wide">Rate</th><th>Claim</th><th class="wide">Miles to date</th><th>Claim to date</th></tr></thead><tbody>
+      ${M.map(r => `<tr data-act="editLedger" data-kind="${r.kind}" data-id="${r.id}" style="cursor:pointer">
+        <td class="desc">${esc(r.desc)}<div class="muted" style="font-size:12px">${fmtDate(r.date)}</div></td>
+        <td>${(+r.miles.toFixed(1)).toLocaleString('en-GB')}</td><td class="wide">${Math.round(r.rate * 100)}p</td><td>${money(r.claim)}</td>
+        <td class="wide">${(+r.runMiles.toFixed(1)).toLocaleString('en-GB')}</td><td><b>${money(r.runClaim)}</b></td></tr>`).join('')}
+      </tbody></table></div>` : '<p class="empty-note">No business mileage recorded in this tax year.</p>'}
   </div>
   <form id="fEntry" class="card">
     <h2>${en ? 'Edit entry' : 'Add rental, cost, mileage or income'}</h2>
@@ -663,7 +678,7 @@ function vAccounts(){
       ${en ? `<button type="button" class="b" data-act="cancel">Cancel</button><button type="button" class="b danger" data-act="delete" data-id="${en.id}">Delete</button>` : ''}</div>
   </form>
   <div class="card"><h2>Running totals</h2>
-    <p class="muted small" style="margin-top:-6px">Tap a row to edit it.</p>
+    <p class="muted small" style="margin-top:-6px">Money in and out. Mileage is listed under the tax claim above. Tap a row to edit it.</p>
     ${L.length ? `<div class="tablewrap"><table><thead><tr><th>Item</th><th>Amount</th><th class="wide">Returns</th><th class="wide">Costs</th><th>Running net</th></tr></thead><tbody>
       ${L.map(r => `<tr data-act="editLedger" data-kind="${r.kind}" data-id="${r.id}" style="cursor:pointer">
         <td class="desc">${esc(r.desc)}<div class="muted" style="font-size:12px">${fmtDate(r.date)}</div></td>
