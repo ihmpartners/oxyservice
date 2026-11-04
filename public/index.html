@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OxyService</title>
 <meta name="description" content="Oxygen transfill log with tax-year accounts">
-<meta name="theme-color" content="#0f5f5a">
+<meta name="theme-color" content="#1a56b0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -13,29 +13,29 @@
 <meta name="apple-mobile-web-app-title" content="OxyService">
 <style>
 :root{
-  --bg:#f3f5f4; --card:#ffffff; --ink:#15211f; --muted:#5d6b68; --line:#d9e0de;
-  --accent:#0f5f5a; --accent-ink:#ffffff; --accent-soft:#e1efed;
+  --bg:#f2f5f9; --card:#ffffff; --ink:#121b2b; --muted:#5a6678; --line:#d6dde8;
+  --accent:#1a56b0; --accent-ink:#ffffff; --head:#1a56b0; --accent-soft:#e3ecfa;
   --good:#1d7a3e; --bad:#b4342a; --warn:#a86a00;
-  --gauge:#0f5f5a; --gauge-low:#c9822b; --gauge-crit:#b4342a;
+  --gauge:#1a56b0; --gauge-low:#c9822b; --gauge-crit:#b4342a;
   --radius:12px;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0f1514; --card:#18211f; --ink:#e7eeec; --muted:#93a29f; --line:#2a3633;
-    --accent:#4fb3a9; --accent-ink:#06201d; --accent-soft:#1d2f2c;
-    --good:#5cc27f; --bad:#ef7d72; --warn:#e0a84a; --gauge:#4fb3a9;
+    --bg:#0d131c; --card:#161e2a; --ink:#e6ecf5; --muted:#92a0b4; --line:#283345;
+    --accent:#6ea8ff; --accent-ink:#071a36; --head:#173a72; --accent-soft:#1a2840;
+    --good:#5cc27f; --bad:#ef7d72; --warn:#e0a84a; --gauge:#6ea8ff;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0f1514; --card:#18211f; --ink:#e7eeec; --muted:#93a29f; --line:#2a3633;
-  --accent:#4fb3a9; --accent-ink:#06201d; --accent-soft:#1d2f2c;
-  --good:#5cc27f; --bad:#ef7d72; --warn:#e0a84a; --gauge:#4fb3a9;
+  --bg:#0d131c; --card:#161e2a; --ink:#e6ecf5; --muted:#92a0b4; --line:#283345;
+  --accent:#6ea8ff; --accent-ink:#071a36; --head:#173a72; --accent-soft:#1a2840;
+  --good:#5cc27f; --bad:#ef7d72; --warn:#e0a84a; --gauge:#6ea8ff;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   padding-bottom:calc(72px + env(safe-area-inset-bottom))}
-header{position:sticky;top:0;z-index:5;background:var(--accent);color:var(--accent-ink);
+header{position:sticky;top:0;z-index:5;background:var(--head);color:#fff;
   padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px}
 header h1{font-size:18px;margin:0;flex:1;letter-spacing:.2px}
 header select{background:rgba(255,255,255,.15);color:inherit;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:6px 8px;font:inherit;font-size:14px}
